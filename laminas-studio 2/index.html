@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creador de Láminas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'PackyGreat';
+            src: url('/laminas-studio/assets/fonts/PackyGreat.ttf') format('truetype');
+        }
+        
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background: #0d0e11; color: #f0f0f5; font-family: 'Outfit', sans-serif; }
+        
+        header { padding: 0 20px; height: 64px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.07); background: rgba(13,14,17,0.95); position: sticky; top: 0; z-index: 100; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark { width: 36px; height: 36px; background: #f59e0b; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: #000; }
+        .brand-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .user-badge { padding: 6px 12px; background: #1c1d23; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6b7280; }
+        .user-badge strong { color: #f59e0b; }
+        
+        .workspace { display: grid; grid-template-columns: 380px 1fr 320px; gap: 20px; padding: 20px; max-width: 1900px; margin: 0 auto; }
+        
+        .panel { background: #141519; border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; height: fit-content; max-height: calc(100vh - 104px); overflow-y: auto; }
+        .panel h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        
+        .field { margin-bottom: 12px; }
+        .field-label { display: block; font-size: 10px; font-family: 'IBM Plex Mono', monospace; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+        .field input, .field textarea, .field select { width: 100%; background: #1c1d23; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 10px 12px; color: #f0f0f5; font-family: 'Outfit', sans-serif; font-size: 13px; outline: none; }
+        .field input:focus, .field textarea:focus, .field select:focus { border-color: #f59e0b; }
+        .field textarea { min-height: 60px; resize: vertical; }
+        .field input[type="file"] { padding: 8px; }
+        
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; justify-content: center; }
+        .btn-primary { background: #f59e0b; color: #000; width: 100%; margin-top: 8px; }
+        .btn-primary:hover:not(:disabled) { background: #fbbf24; }
+        .btn-secondary { background: #1c1d23; color: #f0f0f5; border: 1px solid rgba(255,255,255,0.07); width: 100%; margin-top: 8px; }
+        .btn-secondary:hover { border-color: #f59e0b; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .preview-area { background: #141519; border-radius: 10px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        .preview-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+        .preview-actions { display: flex; gap: 8px; }
+        .preview-actions .btn { width: auto; margin: 0; padding: 8px 12px; }
+        
+        .preview-container { background: repeating-conic-gradient(#141519 0% 25%, #1c1d23 0% 50%) 50% / 30px 30px; border: 2px dashed rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; min-height: 600px; position: relative; overflow: hidden; }
+        .preview-container.has-content { border-color: #f59e0b; background: #000; }
+        
+        .editor-canvas { position: relative; background: #000; border-radius: 8px; overflow: hidden; margin: 0 auto; }
+        .editor-canvas.formato-916 { width: 540px; height: 960px; }
+        .editor-canvas.formato-cuadrado { width: 600px; height: 786px; }
+        
+        .draggable-img { position: absolute; user-select: none; }
+        .draggable-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .draggable-img.circle { border-radius: 50%; overflow: hidden; border: 4px solid white; }
+        
+        .plantilla-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; background-size: cover; background-position: center; }
+        
+        .text-overlay { position: absolute; color: white; font-family: 'PackyGreat', Impact, sans-serif; font-weight: 900; white-space: pre-wrap; z-index: 15; pointer-events: none; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.8); }
+        
+        .slider-control { margin-bottom: 14px; }
+        .slider-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: #6b7280; text-transform: uppercase; }
+        .slider-value { color: #f59e0b; font-weight: 600; }
+        .slider-row { display: flex; gap: 6px; align-items: center; }
+        .slider-row button { background: #1c1d23; color: #f0f0f5; border: 1px solid rgba(255,255,255,0.07); border-radius: 4px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
+        .slider-row button:hover { border-color: #f59e0b; background: #25262e; }
+        .slider-row input[type="range"] { flex: 1; }
+        
+        .gallery-section { background: #1c1d23; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 10px; margin-top: 12px; }
+        .gallery-label { font-size: 10px; font-family: 'IBM Plex Mono', monospace; color: #f59e0b; text-transform: uppercase; margin-bottom: 8px; }
+        .image-gallery { display: flex; gap: 10px; overflow-x: auto; min-height: 100px; }
+        .image-gallery:empty::after { content: 'Busca o sube una imagen...'; color: #6b7280; font-size: 12px; display: flex; align-items: center; justify-content: center; width: 100%; }
+        .gallery-item { min-width: 90px; height: 90px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; }
+        .gallery-item:hover { border-color: #f59e0b; transform: scale(1.05); }
+        .gallery-item.selected { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .laminas-list { max-height: 200px; overflow-y: auto; }
+        .lamina-item { padding: 10px; background: #1c1d23; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .lamina-item:hover { border-color: #f59e0b; background: #25262e; }
+        .lamina-item-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .lamina-item-meta { font-size: 11px; color: #6b7280; font-family: 'IBM Plex Mono', monospace; }
+        
+        .divider { height: 1px; background: rgba(255,255,255,0.07); margin: 16px 0; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 12px; font-weight: 600; color: #f59e0b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #141519; border: 1px solid rgba(255,255,255,0.07); padding: 12px 18px; border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; display: none; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+        .toast.ok { border-left: 4px solid #10b981; }
+        .toast.err { border-left: 4px solid #ef4444; }
+        .toast.warn { border-left: 4px solid #f59e0b; }
+        
+        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(0,0,0,0.2); border-radius: 50%; border-top-color: #000; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #141519; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 20px; max-width: 450px; width: 90%; }
+        .modal-header { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        
+        .scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        .scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        
+        .placeholder { text-align: center; color: #6b7280; padding: 40px; }
+        .placeholder-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <div class="brand-mark">CH</div>
+            <div class="brand-name">Creador de Láminas</div>
+        </div>
+        <div class="header-right">
+            <div class="user-badge">📊 <strong>Google Sheets</strong></div>
+            <div class="user-badge"><strong id="usuarioActual">-</strong></div>
+        </div>
+    </header>
+    
+    <div class="workspace">
+        <div class="panel scrollbar">
+            <h3 style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleMisLaminas()">
+                <span>📋 Mis Láminas</span>
+                <span id="toggleIconLaminas" style="font-size:12px;">▶</span>
+            </h3>
+            <div id="misLaminasContent" style="display:none;">
+                <button class="btn btn-secondary" onclick="cargarMisLaminas()">🔄 Actualizar</button>
+                <div id="laminasList" class="laminas-list scrollbar" style="margin-top:12px;max-height:300px;overflow-y:auto;"></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h3>1️⃣ Generar Contenido</h3>
+            <div class="field">
+                <label class="field-label">Texto Base</label>
+                <textarea id="textoBase" placeholder="Tema..." rows="3"></textarea>
+            </div>
+            <div class="field">
+                <label class="field-label">Cambios (opcional)</label>
+                <textarea id="cambiosSolicitados" placeholder="Ej: Cambiar título a mayúsculas, hacer post X más corto..." rows="2"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="generarContenido()">✨ Generar</button>
+            
+            <div class="divider"></div>
+            
+            <div class="field">
+                <label class="field-label">Título</label>
+                <textarea id="tituloGenerado" rows="2"></textarea>
+            </div>
+            <div class="field">
+                <label class="field-label">Post X</label>
+                <textarea id="postX" rows="2"></textarea>
+            </div>
+            <div class="field">
+                <label class="field-label">Hashtags</label>
+                <input type="text" id="hashtags">
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h3>2️⃣ Búsqueda de Imágenes</h3>
+            
+            <div class="field">
+                <label class="field-label">Imagen Principal</label>
+                <input type="text" id="buscarImagenPrincipal" placeholder="Buscar...">
+                <button class="btn btn-primary" onclick="buscarImagenes('principal')">🔍 Buscar</button>
+                <input type="file" id="subirImagenPrincipal" accept="image/*" style="margin-top:8px;" onchange="subirImagen('principal')">
+            </div>
+            
+            <div class="gallery-section" id="galleryPrincipal" style="display:none;">
+                <div class="gallery-label">Imagen Principal</div>
+                <div class="image-gallery scrollbar" data-type="principal"></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="field">
+                <label class="field-label">Composición</label>
+                <select id="tipoComposicion" onchange="cambiarComposicion()">
+                    <option value="ninguna">Ninguna</option>
+                    <option value="1imagen">1 Imagen adicional</option>
+                    <option value="1circulo">1 Círculo</option>
+                    <option value="2circulos">2 Círculos</option>
+                </select>
+            </div>
+            
+            <div id="camposComposicion"></div>
+            
+            <div class="gallery-section" id="galleryImagen1" style="display:none;">
+                <div class="gallery-label">Imagen Adicional</div>
+                <div class="image-gallery scrollbar" data-type="imagen1"></div>
+            </div>
+            
+            <div class="gallery-section" id="galleryCirculo1" style="display:none;">
+                <div class="gallery-label">Círculo 1</div>
+                <div class="image-gallery scrollbar" data-type="circulo1"></div>
+            </div>
+            
+            <div class="gallery-section" id="galleryCirculo2" style="display:none;">
+                <div class="gallery-label">Círculo 2</div>
+                <div class="image-gallery scrollbar" data-type="circulo2"></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h3>3️⃣ Plantilla</h3>
+            <div class="field">
+                <label class="field-label">Categoría</label>
+                <select id="plantillaCategoria" onchange="actualizarPlantilla()">
+                    <option value="MEXICO">México</option>
+                    <option value="EEUU">EUA</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label">Color</label>
+                <select id="plantillaColor" onchange="actualizarPlantilla()">
+                    <option value="Tinto" selected>Tinto</option>
+                    <option value="Azul">Azul</option>
+                    <option value="Amarillo">Amarillo</option>
+                    <option value="Verde">Verde</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label">Formato</label>
+                <select id="plantillaTamano" onchange="actualizarFormato()">
+                    <option value="916" selected>9:16</option>
+                    <option value="cuadrado">3:4</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="preview-area">
+            <div class="preview-header">
+                <h2 class="preview-title">Vista Previa</h2>
+                <div class="preview-actions">
+                    <button class="btn btn-secondary" onclick="limpiar()">🗑️ Limpiar</button>
+                    <button class="btn btn-primary" onclick="guardarEnSheet()" id="btnGuardar" disabled>💾 Guardar</button>
+                    <button class="btn btn-primary" onclick="generarYEnviarLamina()">🎨 Generar</button>
+                </div>
+            </div>
+            <div id="previewContainer" class="preview-container">
+                <div id="placeholder" class="placeholder">
+                    <div class="placeholder-icon">🎨</div>
+                    <h4>Vista Previa Interactiva</h4>
+                    <p>Selecciona imágenes para empezar</p>
+                </div>
+                <div id="editorCanvas" class="editor-canvas formato-916" style="display:none;"></div>
+            </div>
+        </div>
+        
+        <div class="panel scrollbar">
+            <h3>🎛️ Controles</h3>
+            
+            <div class="section">
+                <div class="section-title">Imagen Principal</div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Ancho</span><span class="slider-value" id="imgAnchoVal">100%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImgAncho(-10)">-</button>
+                        <input type="range" id="imgAncho" min="50" max="150" value="100" oninput="updateImgAncho(this.value)">
+                        <button onclick="adjustImgAncho(10)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Alto</span><span class="slider-value" id="imgAltoVal">60%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImgAlto(-5)">-</button>
+                        <input type="range" id="imgAlto" min="30" max="100" value="60" oninput="updateImgAlto(this.value)">
+                        <button onclick="adjustImgAlto(5)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición X</span><span class="slider-value" id="imgPosXVal">0%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImgPosX(-5)">←</button>
+                        <input type="range" id="imgPosX" min="-50" max="50" value="0" oninput="updateImgPosX(this.value)">
+                        <button onclick="adjustImgPosX(5)">→</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="imgPosYVal">0%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImgPosY(-5)">↑</button>
+                        <input type="range" id="imgPosY" min="-50" max="50" value="0" oninput="updateImgPosY(this.value)">
+                        <button onclick="adjustImgPosY(5)">↓</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section" id="controlImagen1" style="display:none;">
+                <div class="section-title">Imagen Adicional</div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Ancho</span><span class="slider-value" id="img1AnchoVal">40%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImg1Ancho(-5)">-</button>
+                        <input type="range" id="img1Ancho" min="20" max="80" value="40" oninput="updateImg1Ancho(this.value)">
+                        <button onclick="adjustImg1Ancho(5)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Alto</span><span class="slider-value" id="img1AltoVal">30%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImg1Alto(-5)">-</button>
+                        <input type="range" id="img1Alto" min="20" max="80" value="30" oninput="updateImg1Alto(this.value)">
+                        <button onclick="adjustImg1Alto(5)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición X</span><span class="slider-value" id="img1XVal">70%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImg1X(-5)">←</button>
+                        <input type="range" id="img1X" min="0" max="100" value="70" oninput="updateImg1X(this.value)">
+                        <button onclick="adjustImg1X(5)">→</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="img1YVal">15%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustImg1Y(-5)">↑</button>
+                        <input type="range" id="img1Y" min="0" max="100" value="15" oninput="updateImg1Y(this.value)">
+                        <button onclick="adjustImg1Y(5)">↓</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section" id="controlCirculo1" style="display:none;">
+                <div class="section-title">Círculo 1</div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Tamaño</span><span class="slider-value" id="circ1TamVal">150px</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc1Tam(-10)">-</button>
+                        <input type="range" id="circ1Tam" min="80" max="300" value="150" oninput="updateCirc1Tam(this.value)">
+                        <button onclick="adjustCirc1Tam(10)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición X</span><span class="slider-value" id="circ1XVal">70%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc1X(-5)">←</button>
+                        <input type="range" id="circ1X" min="0" max="100" value="70" oninput="updateCirc1X(this.value)">
+                        <button onclick="adjustCirc1X(5)">→</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="circ1YVal">15%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc1Y(-5)">↑</button>
+                        <input type="range" id="circ1Y" min="0" max="100" value="15" oninput="updateCirc1Y(this.value)">
+                        <button onclick="adjustCirc1Y(5)">↓</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section" id="controlCirculo2" style="display:none;">
+                <div class="section-title">Círculo 2</div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Tamaño</span><span class="slider-value" id="circ2TamVal">150px</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc2Tam(-10)">-</button>
+                        <input type="range" id="circ2Tam" min="80" max="300" value="150" oninput="updateCirc2Tam(this.value)">
+                        <button onclick="adjustCirc2Tam(10)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición X</span><span class="slider-value" id="circ2XVal">25%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc2X(-5)">←</button>
+                        <input type="range" id="circ2X" min="0" max="100" value="25" oninput="updateCirc2X(this.value)">
+                        <button onclick="adjustCirc2X(5)">→</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="circ2YVal">15%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustCirc2Y(-5)">↑</button>
+                        <input type="range" id="circ2Y" min="0" max="100" value="15" oninput="updateCirc2Y(this.value)">
+                        <button onclick="adjustCirc2Y(5)">↓</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section">
+                <div class="section-title">Texto</div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Tamaño</span><span class="slider-value" id="textoTamVal">55px</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustTextoTam(-5)">-</button>
+                        <input type="range" id="textoTam" min="30" max="100" value="55" oninput="updateTextoTam(this.value)">
+                        <button onclick="adjustTextoTam(5)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="textoPosYVal">75%</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustTextoPosY(-5)">↑</button>
+                        <input type="range" id="textoPosY" min="50" max="95" value="75" oninput="updateTextoPosY(this.value)">
+                        <button onclick="adjustTextoPosY(5)">↓</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Interlineado</span><span class="slider-value" id="textoLineHeightVal">1.2</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustTextoLineHeight(-0.1)">-</button>
+                        <input type="range" id="textoLineHeight" min="0.8" max="2.0" step="0.1" value="1.2" oninput="updateTextoLineHeight(this.value)">
+                        <button onclick="adjustTextoLineHeight(0.1)">+</button>
+                    </div>
+                </div>
+                <div class="slider-control">
+                    <div class="slider-label"><span>Espaciado</span><span class="slider-value" id="textoSpacingVal">1px</span></div>
+                    <div class="slider-row">
+                        <button onclick="adjustTextoSpacing(-1)">-</button>
+                        <input type="range" id="textoSpacing" min="-5" max="20" value="1" oninput="updateTextoSpacing(this.value)">
+                        <button onclick="adjustTextoSpacing(1)">+</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Alineación</label>
+                    <div style="display:flex;gap:4px;">
+                        <button class="btn btn-secondary" onclick="setTextoAlign('left')" style="flex:1;padding:8px;">⬅️</button>
+                        <button class="btn btn-secondary" onclick="setTextoAlign('center')" style="flex:1;padding:8px;">↔️</button>
+                        <button class="btn btn-secondary" onclick="setTextoAlign('right')" style="flex:1;padding:8px;">➡️</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Color</label>
+                    <select id="textoColor" onchange="updateTexto()">
+                        <option value="#ffffff" selected>Blanco</option>
+                        <option value="#000000">Negro</option>
+                        <option value="#f59e0b">Naranja</option>
+                        <option value="#ef4444">Rojo</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <div id="modalUsuario" class="modal-overlay show">
+        <div class="modal">
+            <div class="modal-header">👤 Ingresa tu nombre</div>
+            <div class="divider"></div>
+            <div class="field">
+                <label class="field-label">Usuario</label>
+                <input type="text" id="modalUsuarioInput" placeholder="Tu nombre...">
+            </div>
+            <button class="btn btn-primary" onclick="confirmarUsuario()">Continuar</button>
+        </div>
+    </div>
+
+<script>
+const N8N_URL='https://n8n-ukzb.onrender.com';
+let usuarioActual=null,imagenPrincipalSeleccionada=null,imagenesComposicion={},editorCanvas=null,laminaActualId=null;
+let imgConfig={ancho:100,alto:60,posX:0,posY:0};
+let img1Config={ancho:40,alto:30,posX:70,posY:15};
+let circ1Config={tam:150,posX:70,posY:15};
+let circ2Config={tam:150,posX:25,posY:15};
+let textoConfig={tam:55,posY:75,align:'left',color:'#ffffff',lineHeight:1.2,spacing:1};
+
+window.onload=function(){
+    const u=localStorage.getItem('usuarioActual');
+    if(u){
+        usuarioActual=u;
+        document.getElementById('usuarioActual').textContent=u;
+        document.getElementById('modalUsuario').classList.remove('show');
+        cargarMisLaminas();
+    }
+};
+
+async function confirmarUsuario(){
+    const u=document.getElementById('modalUsuarioInput').value.trim();
+    if(!u){toast('⚠ Ingresa un nombre','warn');return;}
+    usuarioActual=u;
+    localStorage.setItem('usuarioActual',u);
+    document.getElementById('usuarioActual').textContent=u;
+    document.getElementById('modalUsuario').classList.remove('show');
+    toast('✅ Usuario confirmado','ok');
+    cargarMisLaminas();
+}
+
+async function cargarMisLaminas(){
+    if(!usuarioActual)return;
+    try{
+        const r=await fetch(`${N8N_URL}/webhook/mis-laminas?usuario=${encodeURIComponent(usuarioActual)}`);
+        if(!r.ok)throw new Error('Error al cargar láminas');
+        const data=await r.json();
+        const laminas=data.laminas||[];
+        
+        const list=document.getElementById('laminasList');
+        list.innerHTML='';
+        
+        if(laminas.length===0){
+            list.innerHTML='<div style="text-align:center;color:#6b7280;padding:20px;font-size:12px;">No hay láminas guardadas</div>';
+            return;
+        }
+        
+        laminas.forEach(l=>{
+            const item=document.createElement('div');
+            item.className='lamina-item';
+            item.onclick=()=>cargarLamina(l);
+            item.innerHTML=`
+                <div class="lamina-item-title">${l.titulo||'Sin título'}</div>
+                <div class="lamina-item-meta">${new Date(l.fecha_creacion).toLocaleDateString()} • ${l.tipo_composicion||'Sin composición'}</div>
+            `;
+            list.appendChild(item);
+        });
+    }catch(e){
+        console.error('Error cargar láminas:',e);
+        toast('❌ Error al cargar láminas','err');
+    }
+}
+
+async function cargarLamina(lamina){
+    try{
+        laminaActualId=lamina.id;
+        
+        document.getElementById('tituloGenerado').value=lamina.titulo||'';
+        document.getElementById('postX').value=lamina.post_x||'';
+        document.getElementById('hashtags').value=lamina.hashtags||'';
+        
+        // Si imagen_principal es URL de Drive, descargarla y convertir a base64
+        if(lamina.imagen_principal && lamina.imagen_principal.startsWith('http')){
+            toast('⏳ Descargando imagen de Drive...','info');
+            try{
+                // Usar proxy local
+                const proxyUrl = `/laminas-studio/image-proxy.php?url=${encodeURIComponent(lamina.imagen_principal)}`;
+                const response=await fetch(proxyUrl);
+                if(!response.ok) throw new Error('Error de red');
+                const blob=await response.blob();
+                imagenPrincipalSeleccionada=await new Promise((resolve)=>{
+                    const reader=new FileReader();
+                    reader.onloadend=()=>resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                toast('✅ Imagen cargada','ok');
+            }catch(e){
+                console.warn('⚠ No se pudo descargar imagen (CORS). Cargando sin imagen.');
+                toast('⚠ Cargando sin imagen principal','warn');
+                imagenPrincipalSeleccionada=null;
+            }
+        }else{
+            imagenPrincipalSeleccionada=lamina.imagen_principal;
+        }
+        
+        imagenesComposicion=lamina.imagenes_composicion||{};
+        
+        if(lamina.plantilla.tamano)document.getElementById('plantillaTamano').value=lamina.plantilla.tamano;
+        if(lamina.plantilla.categoria)document.getElementById('plantillaCategoria').value=lamina.plantilla.categoria;
+        if(lamina.plantilla.color)document.getElementById('plantillaColor').value=lamina.plantilla.color;
+        
+        document.getElementById('tipoComposicion').value=lamina.tipo_composicion||'ninguna';
+        cambiarComposicion();
+        
+        const config=lamina.configuracion||{};
+        if(config.imgConfig){
+            imgConfig=config.imgConfig;
+            document.getElementById('imgAncho').value=imgConfig.ancho;
+            document.getElementById('imgAlto').value=imgConfig.alto;
+            document.getElementById('imgPosX').value=imgConfig.posX;
+            document.getElementById('imgPosY').value=imgConfig.posY;
+            updateImgAncho(imgConfig.ancho);
+            updateImgAlto(imgConfig.alto);
+            updateImgPosX(imgConfig.posX);
+            updateImgPosY(imgConfig.posY);
+        }
+        if(config.img1Config){
+            img1Config=config.img1Config;
+            document.getElementById('img1Ancho').value=img1Config.ancho;
+            document.getElementById('img1Alto').value=img1Config.alto;
+            document.getElementById('img1X').value=img1Config.posX;
+            document.getElementById('img1Y').value=img1Config.posY;
+            updateImg1Ancho(img1Config.ancho);
+            updateImg1Alto(img1Config.alto);
+            updateImg1X(img1Config.posX);
+            updateImg1Y(img1Config.posY);
+        }
+        if(config.circ1Config){
+            circ1Config=config.circ1Config;
+            document.getElementById('circ1Tam').value=circ1Config.tam;
+            document.getElementById('circ1X').value=circ1Config.posX;
+            document.getElementById('circ1Y').value=circ1Config.posY;
+            updateCirc1Tam(circ1Config.tam);
+            updateCirc1X(circ1Config.posX);
+            updateCirc1Y(circ1Config.posY);
+        }
+        if(config.circ2Config){
+            circ2Config=config.circ2Config;
+            document.getElementById('circ2Tam').value=circ2Config.tam;
+            document.getElementById('circ2X').value=circ2Config.posX;
+            document.getElementById('circ2Y').value=circ2Config.posY;
+            updateCirc2Tam(circ2Config.tam);
+            updateCirc2X(circ2Config.posX);
+            updateCirc2Y(circ2Config.posY);
+        }
+        if(config.textoConfig){
+            textoConfig=config.textoConfig;
+            document.getElementById('textoTam').value=textoConfig.tam;
+            document.getElementById('textoPosY').value=textoConfig.posY;
+            document.getElementById('textoLineHeight').value=textoConfig.lineHeight;
+            document.getElementById('textoSpacing').value=textoConfig.spacing;
+            document.getElementById('textoColor').value=textoConfig.color;
+            updateTextoTam(textoConfig.tam);
+            updateTextoPosY(textoConfig.posY);
+            updateTextoLineHeight(textoConfig.lineHeight);
+            updateTextoSpacing(textoConfig.spacing);
+        }
+        
+        generarPreview();
+        toast('✅ Lámina cargada','ok');
+        
+    }catch(e){
+        console.error('Error cargar lámina:',e);
+        toast('❌ Error al cargar lámina','err');
+    }
+}
+
+function toggleMisLaminas(){
+    const content=document.getElementById('misLaminasContent');
+    const icon=document.getElementById('toggleIconLaminas');
+    if(content.style.display==='none'){
+        content.style.display='block';
+        icon.textContent='▼';
+    }else{
+        content.style.display='none';
+        icon.textContent='▶';
+    }
+}
+
+async function generarContenido(){
+    if(!usuarioActual){toast('⚠ Confirma tu usuario','warn');return;}
+    const t=document.getElementById('textoBase').value.trim();
+    if(!t){toast('⚠ Escribe un texto','warn');return;}
+    const cambios=document.getElementById('cambiosSolicitados').value.trim();
+    const b=event.target;
+    b.disabled=true;
+    b.innerHTML='<span class="spinner"></span> Generando...';
+    try{
+        const payload={texto:t,usuario:usuarioActual};
+        if(cambios)payload.cambios=cambios;
+        
+        const r=await fetch(`${N8N_URL}/webhook/generar-lamina-rapida`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!r.ok)throw new Error('Error n8n');
+        const data=await r.json();
+        const c=Array.isArray(data)?data[0]:data;
+        document.getElementById('tituloGenerado').value=c.título||c.titulo||'';
+        document.getElementById('postX').value=c.postX||c.post_x||'';
+        document.getElementById('hashtags').value=c.hashtags||'';
+        toast('✅ Contenido generado','ok');
+    }catch(e){toast(`❌ ${e.message}`,'err');}finally{b.disabled=false;b.innerHTML='✨ Generar';}
+}
+
+async function buscarImagenes(tipo){
+    const inputId=tipo==='principal'?'buscarImagenPrincipal':`buscarImagen${tipo}`;
+    const q=document.getElementById(inputId).value.trim();
+    if(!q){toast('⚠ Escribe para buscar','warn');return;}
+    const b=event.target;
+    b.disabled=true;
+    b.innerHTML='<span class="spinner"></span> Buscando...';
+    try{
+        const r=await fetch(`${N8N_URL}/webhook/buscar-imagen`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,usuario:usuarioActual})});
+        if(!r.ok)throw new Error('Error');
+        const d=await r.json();
+        mostrarImagenes(d.imagenes||[],tipo);
+        toast('✅ Imágenes encontradas','ok');
+    }catch(e){toast(`❌ ${e.message}`,'err');}finally{b.disabled=false;b.innerHTML='🔍 Buscar';}
+}
+
+function subirImagen(tipo){
+    const input=tipo==='principal'?document.getElementById('subirImagenPrincipal'):document.getElementById(`subirImagen${tipo}`);
+    const file=input.files[0];
+    if(!file){return;}
+    
+    const reader=new FileReader();
+    reader.onload=function(e){
+        const url=e.target.result;
+        mostrarImagenes([{original:url,thumbnail:url}],tipo);
+        seleccionarImagen(url,tipo);
+        toast('✅ Imagen subida','ok');
+    };
+    reader.readAsDataURL(file);
+}
+
+function mostrarImagenes(imgs,tipo){
+    const gId=`gallery${tipo.charAt(0).toUpperCase()+tipo.slice(1)}`;
+    document.getElementById(gId).style.display='block';
+    const g=document.querySelector(`[data-type="${tipo}"]`);
+    g.innerHTML='';
+    
+    // Validar y filtrar URLs válidas
+    const validImages=imgs.filter(img=>{
+        const url=img.thumbnail||img.original;
+        // Validar que sea URL http/https válida
+        return url && (url.startsWith('http://') || url.startsWith('https://'));
+    });
+    
+    if(validImages.length===0){
+        g.innerHTML='<div style="color:#666;text-align:center;padding:20px;">No se encontraron imágenes válidas</div>';
+        return;
+    }
+    
+    // USAR PROXY LOCAL (image-proxy.php)
+    const useProxy = url => `/laminas-studio/image-proxy.php?url=${encodeURIComponent(url)}`;
+    
+    validImages.forEach(img=>{
+        const item=document.createElement('div');
+        item.className='gallery-item';
+        const imgEl=document.createElement('img');
+        const originalUrl=img.thumbnail||img.original;
+        
+        // Usar proxy local directamente
+        imgEl.src=useProxy(originalUrl);
+        imgEl.dataset.original=img.original||img.thumbnail;
+        
+        // Fallback: si falla proxy → original → placeholder
+        imgEl.onerror=function(){
+            if(this.src.includes('image-proxy.php')){
+                // Si falló el proxy, intentar directo
+                this.src=originalUrl;
+            }else{
+                // Si falló directo, placeholder
+                this.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="90" height="90"%3E%3Crect fill="%23333" width="90" height="90"/%3E%3Ctext x="50%25" y="50%25" fill="%23666" text-anchor="middle" dy=".3em"%3E❌%3C/text%3E%3C/svg%3E';
+            }
+        };
+        
+        item.appendChild(imgEl);
+        item.ondblclick=()=>seleccionarImagen(img.original||img.thumbnail,tipo);
+        g.appendChild(item);
+    });
+}
+
+async function seleccionarImagen(url,tipo){
+    // Si es URL externa, convertir a base64 usando proxy local
+    if(url.startsWith('http')){
+        try{
+            // Usar proxy local
+            const proxiedUrl=`/laminas-studio/image-proxy.php?url=${encodeURIComponent(url)}`;
+            const response=await fetch(proxiedUrl);
+            
+            if(!response.ok)throw new Error('Proxy failed');
+            
+            const blob=await response.blob();
+            url=await new Promise((resolve)=>{
+                const reader=new FileReader();
+                reader.onloadend=()=>resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }catch(e){
+            console.error('Error convirtiendo imagen:',e);
+            toast('⚠ Error al cargar imagen. Intenta con otra.','warn');
+            return;
+        }
+    }
+    
+    if(tipo==='principal'){
+        imagenPrincipalSeleccionada=url;
+        generarPreview();
+    }else{
+        imagenesComposicion[tipo]=url;
+        if(editorCanvas)generarPreview();
+    }
+    document.querySelectorAll(`[data-type="${tipo}"] .gallery-item`).forEach(i=>i.classList.remove('selected'));
+    if(event&&event.target&&event.target.closest){
+        const item=event.target.closest('.gallery-item');
+        if(item)item.classList.add('selected');
+    }
+    toast(`✅ Imagen: ${tipo}`,'ok');
+}
+
+function cambiarComposicion(){
+    const t=document.getElementById('tipoComposicion').value;
+    const c=document.getElementById('camposComposicion');
+    c.innerHTML='';
+    document.getElementById('galleryImagen1').style.display='none';
+    document.getElementById('galleryCirculo1').style.display='none';
+    document.getElementById('galleryCirculo2').style.display='none';
+    document.getElementById('controlImagen1').style.display='none';
+    document.getElementById('controlCirculo1').style.display='none';
+    document.getElementById('controlCirculo2').style.display='none';
+    
+    if(t==='ninguna')return;
+    
+    const campos={'1imagen':['imagen1'],'1circulo':['circulo1'],'2circulos':['circulo1','circulo2']};
+    const labels={'imagen1':'Imagen Adicional','circulo1':'Círculo 1','circulo2':'Círculo 2'};
+    const keys=campos[t]||[];
+    
+    keys.forEach(k=>{
+        c.innerHTML+=`<div class="field" style="margin-top:10px;">
+            <label class="field-label">${labels[k]}</label>
+            <input type="text" id="buscarImagen${k}" placeholder="Buscar...">
+            <button class="btn btn-primary" onclick="buscarImagenes('${k}')">🔍 Buscar</button>
+            <input type="file" id="subirImagen${k}" accept="image/*" style="margin-top:8px;" onchange="subirImagen('${k}')">
+        </div>`;
+        const ctrl=k.charAt(0).toUpperCase()+k.slice(1);
+        document.getElementById(`control${ctrl}`).style.display='block';
+    });
+}
+
+function obtenerUrlPlantilla(){
+    const cat=document.getElementById('plantillaCategoria').value;
+    const col=document.getElementById('plantillaColor').value;
+    const tam=document.getElementById('plantillaTamano').value;
+    
+    let ruta='/laminas-studio/assets/plantillas/';
+    let nombre;
+    
+    if(col==='Amarillo'){
+        nombre=tam==='916'?'Plantilla_Amarillo_916.png':'Plantilla_Amarillo.png';
+    }else if(col==='Verde'){
+        nombre=tam==='916'?`Plantilla_Verde_${cat}_916.png`:`Plantilla_Verde_${cat}.png`;
+    }else{
+        nombre=tam==='916'?`Plantilla_${col}_${cat}_916.png`:`Plantilla_${col}_${cat}.png`;
+    }
+    
+    return ruta+nombre;
+}
+
+function actualizarPlantilla(){
+    if(!editorCanvas)return;
+    const plantillaLayer=document.querySelector('.plantilla-layer');
+    if(plantillaLayer){
+        const url=obtenerUrlPlantilla();
+        plantillaLayer.style.backgroundImage=`url('${url}')`;
+        toast('✅ Plantilla actualizada','ok');
+    }
+}
+
+function actualizarFormato(){
+    const tam=document.getElementById('plantillaTamano').value;
+    const canvas=document.getElementById('editorCanvas');
+    canvas.className='editor-canvas '+(tam==='916'?'formato-916':'formato-cuadrado');
+    
+    if(imagenPrincipalSeleccionada){
+        generarPreview();
+    }else{
+        actualizarPlantilla();
+    }
+}
+
+function generarPreview(){
+    const ti=document.getElementById('tituloGenerado').value.trim();
+    if(!ti){toast('⚠ Genera contenido primero','warn');return;}
+    
+    editorCanvas=document.getElementById('editorCanvas');
+    editorCanvas.innerHTML='';
+    editorCanvas.style.display='block';
+    document.getElementById('placeholder').style.display='none';
+    document.getElementById('previewContainer').classList.add('has-content');
+    
+    const tam=document.getElementById('plantillaTamano').value;
+    editorCanvas.className='editor-canvas '+(tam==='916'?'formato-916':'formato-cuadrado');
+    
+    if(imagenPrincipalSeleccionada){
+        const imgDiv=document.createElement('div');
+        imgDiv.className='draggable-img';
+        imgDiv.id='imagenPrincipal';
+        imgDiv.style.width=`${imgConfig.ancho}%`;
+        imgDiv.style.height=`${imgConfig.alto}%`;
+        imgDiv.style.left=`${imgConfig.posX}%`;
+        imgDiv.style.top=`${imgConfig.posY}%`;
+        imgDiv.style.zIndex='1';
+        
+        const img=document.createElement('img');
+        img.crossOrigin='anonymous';
+        img.src=imagenPrincipalSeleccionada;
+        imgDiv.appendChild(img);
+        editorCanvas.appendChild(imgDiv);
+    }
+    
+    if(imagenesComposicion.imagen1){
+        const i1=document.createElement('div');
+        i1.className='draggable-img';
+        i1.id='imagen1';
+        i1.style.width=`${img1Config.ancho}%`;
+        i1.style.height=`${img1Config.alto}%`;
+        i1.style.left=`${img1Config.posX}%`;
+        i1.style.top=`${img1Config.posY}%`;
+        i1.style.zIndex='5';
+        
+        const img=document.createElement('img');
+        img.crossOrigin='anonymous';
+        img.src=imagenesComposicion.imagen1;
+        i1.appendChild(img);
+        editorCanvas.appendChild(i1);
+    }
+    
+    if(imagenesComposicion.circulo1){
+        const c1=document.createElement('div');
+        c1.className='draggable-img circle';
+        c1.id='circulo1';
+        c1.style.width=`${circ1Config.tam}px`;
+        c1.style.height=`${circ1Config.tam}px`;
+        c1.style.left=`${circ1Config.posX}%`;
+        c1.style.top=`${circ1Config.posY}%`;
+        c1.style.zIndex='5';
+        
+        const img=document.createElement('img');
+        img.crossOrigin='anonymous';
+        img.src=imagenesComposicion.circulo1;
+        c1.appendChild(img);
+        editorCanvas.appendChild(c1);
+    }
+    
+    if(imagenesComposicion.circulo2){
+        const c2=document.createElement('div');
+        c2.className='draggable-img circle';
+        c2.id='circulo2';
+        c2.style.width=`${circ2Config.tam}px`;
+        c2.style.height=`${circ2Config.tam}px`;
+        c2.style.left=`${circ2Config.posX}%`;
+        c2.style.top=`${circ2Config.posY}%`;
+        c2.style.zIndex='5';
+        
+        const img=document.createElement('img');
+        img.crossOrigin='anonymous';
+        img.src=imagenesComposicion.circulo2;
+        c2.appendChild(img);
+        editorCanvas.appendChild(c2);
+    }
+    
+    const plantilla=document.createElement('div');
+    plantilla.className='plantilla-layer';
+    const urlPlantilla=obtenerUrlPlantilla();
+    plantilla.style.backgroundImage=`url('${urlPlantilla}')`;
+    editorCanvas.appendChild(plantilla);
+    
+    const texto=document.createElement('div');
+    texto.className='text-overlay';
+    texto.id='textoOverlay';
+    texto.style.fontSize=`${textoConfig.tam}px`;
+    texto.style.top=`${textoConfig.posY}%`;
+    texto.style.left='5%';
+    texto.style.right='5%';
+    texto.style.textAlign=textoConfig.align;
+    texto.style.color=textoConfig.color;
+    texto.style.lineHeight=textoConfig.lineHeight;
+    texto.style.letterSpacing=`${textoConfig.spacing}px`;
+    texto.textContent=ti;
+    editorCanvas.appendChild(texto);
+    
+    document.getElementById('btnGuardar').disabled=false;
+    toast('✅ Vista previa generada','ok');
+}
+
+function updateEditor(){
+    if(!editorCanvas)return;
+    
+    const imgP=document.getElementById('imagenPrincipal');
+    if(imgP){
+        imgP.style.width=`${imgConfig.ancho}%`;
+        imgP.style.height=`${imgConfig.alto}%`;
+        imgP.style.left=`${imgConfig.posX}%`;
+        imgP.style.top=`${imgConfig.posY}%`;
+    }
+    
+    const i1=document.getElementById('imagen1');
+    if(i1){
+        i1.style.width=`${img1Config.ancho}%`;
+        i1.style.height=`${img1Config.alto}%`;
+        i1.style.left=`${img1Config.posX}%`;
+        i1.style.top=`${img1Config.posY}%`;
+    }
+    
+    const c1=document.getElementById('circulo1');
+    if(c1){
+        c1.style.width=`${circ1Config.tam}px`;
+        c1.style.height=`${circ1Config.tam}px`;
+        c1.style.left=`${circ1Config.posX}%`;
+        c1.style.top=`${circ1Config.posY}%`;
+    }
+    
+    const c2=document.getElementById('circulo2');
+    if(c2){
+        c2.style.width=`${circ2Config.tam}px`;
+        c2.style.height=`${circ2Config.tam}px`;
+        c2.style.left=`${circ2Config.posX}%`;
+        c2.style.top=`${circ2Config.posY}%`;
+    }
+    
+    updateTexto();
+}
+
+function updateTexto(){
+    const t=document.getElementById('textoOverlay');
+    if(t){
+        t.style.fontSize=`${textoConfig.tam}px`;
+        t.style.top=`${textoConfig.posY}%`;
+        t.style.textAlign=textoConfig.align;
+        t.style.color=textoConfig.color;
+        t.style.lineHeight=textoConfig.lineHeight;
+        t.style.letterSpacing=`${textoConfig.spacing}px`;
+    }
+}
+
+function updateImgAncho(v){imgConfig.ancho=parseInt(v);document.getElementById('imgAnchoVal').textContent=v+'%';updateEditor();}
+function adjustImgAncho(d){const v=Math.max(50,Math.min(150,imgConfig.ancho+d));document.getElementById('imgAncho').value=v;updateImgAncho(v);}
+function updateImgAlto(v){imgConfig.alto=parseInt(v);document.getElementById('imgAltoVal').textContent=v+'%';updateEditor();}
+function adjustImgAlto(d){const v=Math.max(30,Math.min(100,imgConfig.alto+d));document.getElementById('imgAlto').value=v;updateImgAlto(v);}
+function updateImgPosX(v){imgConfig.posX=parseInt(v);document.getElementById('imgPosXVal').textContent=v+'%';updateEditor();}
+function adjustImgPosX(d){const v=Math.max(-50,Math.min(50,imgConfig.posX+d));document.getElementById('imgPosX').value=v;updateImgPosX(v);}
+function updateImgPosY(v){imgConfig.posY=parseInt(v);document.getElementById('imgPosYVal').textContent=v+'%';updateEditor();}
+function adjustImgPosY(d){const v=Math.max(-50,Math.min(50,imgConfig.posY+d));document.getElementById('imgPosY').value=v;updateImgPosY(v);}
+
+function updateImg1Ancho(v){img1Config.ancho=parseInt(v);document.getElementById('img1AnchoVal').textContent=v+'%';updateEditor();}
+function adjustImg1Ancho(d){const v=Math.max(20,Math.min(80,img1Config.ancho+d));document.getElementById('img1Ancho').value=v;updateImg1Ancho(v);}
+function updateImg1Alto(v){img1Config.alto=parseInt(v);document.getElementById('img1AltoVal').textContent=v+'%';updateEditor();}
+function adjustImg1Alto(d){const v=Math.max(20,Math.min(80,img1Config.alto+d));document.getElementById('img1Alto').value=v;updateImg1Alto(v);}
+function updateImg1X(v){img1Config.posX=parseInt(v);document.getElementById('img1XVal').textContent=v+'%';updateEditor();}
+function adjustImg1X(d){const v=Math.max(0,Math.min(100,img1Config.posX+d));document.getElementById('img1X').value=v;updateImg1X(v);}
+function updateImg1Y(v){img1Config.posY=parseInt(v);document.getElementById('img1YVal').textContent=v+'%';updateEditor();}
+function adjustImg1Y(d){const v=Math.max(0,Math.min(100,img1Config.posY+d));document.getElementById('img1Y').value=v;updateImg1Y(v);}
+
+function updateCirc1Tam(v){circ1Config.tam=parseInt(v);document.getElementById('circ1TamVal').textContent=v+'px';updateEditor();}
+function adjustCirc1Tam(d){const v=Math.max(80,Math.min(300,circ1Config.tam+d));document.getElementById('circ1Tam').value=v;updateCirc1Tam(v);}
+function updateCirc1X(v){circ1Config.posX=parseInt(v);document.getElementById('circ1XVal').textContent=v+'%';updateEditor();}
+function adjustCirc1X(d){const v=Math.max(0,Math.min(100,circ1Config.posX+d));document.getElementById('circ1X').value=v;updateCirc1X(v);}
+function updateCirc1Y(v){circ1Config.posY=parseInt(v);document.getElementById('circ1YVal').textContent=v+'%';updateEditor();}
+function adjustCirc1Y(d){const v=Math.max(0,Math.min(100,circ1Config.posY+d));document.getElementById('circ1Y').value=v;updateCirc1Y(v);}
+
+function updateCirc2Tam(v){circ2Config.tam=parseInt(v);document.getElementById('circ2TamVal').textContent=v+'px';updateEditor();}
+function adjustCirc2Tam(d){const v=Math.max(80,Math.min(300,circ2Config.tam+d));document.getElementById('circ2Tam').value=v;updateCirc2Tam(v);}
+function updateCirc2X(v){circ2Config.posX=parseInt(v);document.getElementById('circ2XVal').textContent=v+'%';updateEditor();}
+function adjustCirc2X(d){const v=Math.max(0,Math.min(100,circ2Config.posX+d));document.getElementById('circ2X').value=v;updateCirc2X(v);}
+function updateCirc2Y(v){circ2Config.posY=parseInt(v);document.getElementById('circ2YVal').textContent=v+'%';updateEditor();}
+function adjustCirc2Y(d){const v=Math.max(0,Math.min(100,circ2Config.posY+d));document.getElementById('circ2Y').value=v;updateCirc2Y(v);}
+
+function updateTextoTam(v){textoConfig.tam=parseInt(v);document.getElementById('textoTamVal').textContent=v+'px';updateTexto();}
+function adjustTextoTam(d){const v=Math.max(30,Math.min(100,textoConfig.tam+d));document.getElementById('textoTam').value=v;updateTextoTam(v);}
+function updateTextoPosY(v){textoConfig.posY=parseInt(v);document.getElementById('textoPosYVal').textContent=v+'%';updateTexto();}
+function adjustTextoPosY(d){const v=Math.max(50,Math.min(95,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
+function updateTextoLineHeight(v){textoConfig.lineHeight=parseFloat(v);document.getElementById('textoLineHeightVal').textContent=v;updateTexto();}
+function adjustTextoLineHeight(d){const v=Math.max(0.8,Math.min(2.0,textoConfig.lineHeight+d));document.getElementById('textoLineHeight').value=v.toFixed(1);updateTextoLineHeight(v.toFixed(1));}
+function updateTextoSpacing(v){textoConfig.spacing=parseInt(v);document.getElementById('textoSpacingVal').textContent=v+'px';updateTexto();}
+function adjustTextoSpacing(d){const v=Math.max(-5,Math.min(20,textoConfig.spacing+d));document.getElementById('textoSpacing').value=v;updateTextoSpacing(v);}
+function setTextoAlign(a){textoConfig.align=a;updateTexto();}
+
+async function guardarEnSheet(){
+    if(!editorCanvas){toast('⚠ Genera vista previa primero','warn');return;}
+    
+    const b=document.getElementById('btnGuardar');
+    b.disabled=true;
+    
+    // Detectar si es UPDATE o INSERT
+    const isUpdate=laminaActualId!==null;
+    b.innerHTML=isUpdate?'<span class="spinner"></span> Actualizando...':'<span class="spinner"></span> Guardando...';
+    
+    try{
+        const payload={
+            usuario:usuarioActual,
+            titulo:document.getElementById('tituloGenerado').value.trim(),
+            post_x:document.getElementById('postX').value.trim(),
+            hashtags:document.getElementById('hashtags').value.trim(),
+            imagen_principal:imagenPrincipalSeleccionada,
+            tipo_composicion:document.getElementById('tipoComposicion').value,
+            imagenes_composicion:imagenesComposicion,
+            plantilla:{
+                categoria:document.getElementById('plantillaCategoria').value,
+                color:document.getElementById('plantillaColor').value,
+                tamano:document.getElementById('plantillaTamano').value
+            },
+            configuracion:{
+                imgConfig,
+                img1Config,
+                circ1Config,
+                circ2Config,
+                textoConfig
+            }
+        };
+        
+        // Si es UPDATE, agregar ID
+        if(isUpdate){
+            payload.id=laminaActualId;
+        }
+        
+        const r=await fetch(`${N8N_URL}/webhook/guardar-lamina`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(payload)
+        });
+        
+        if(!r.ok){
+            const errorText=await r.text();
+            console.error('Error n8n:',errorText);
+            throw new Error('Error al guardar en Sheets');
+        }
+        
+        const data=await r.json();
+        console.log('Guardado en Sheet:',data);
+        
+        // Actualizar ID global (importante para futuras ediciones)
+        if(!isUpdate){
+            laminaActualId=data.id;
+        }
+        
+        cargarMisLaminas();
+        toast(isUpdate?'✅ Lámina actualizada':'✅ Lámina guardada','ok');
+        
+    }catch(e){
+        console.error('Error completo:',e);
+        toast(`❌ ${e.message}`,'err');
+    }finally{
+        b.disabled=false;
+        b.innerHTML='💾 Guardar';
+    }
+}
+
+// Esperar a que las fuentes se carguen
+async function waitForFonts(){
+    if(document.fonts&&document.fonts.ready){
+        await document.fonts.ready;
+        console.log('✅ Fuentes cargadas');
+    }
+}
+
+async function generarYEnviarLamina(){
+    const b=event.target;
+    b.disabled=true;
+    b.innerHTML='<span class="spinner"></span> Generando...';
+    
+    try{
+        console.log('=== INICIO GENERACIÓN ===');
+        
+        // LEER VALORES DIRECTOS DE LOS CONTROLES (por si hay inconsistencia)
+        textoConfig.tam = parseInt(document.getElementById('textoTam').value) || textoConfig.tam;
+        textoConfig.posY = parseInt(document.getElementById('textoPosY').value) || textoConfig.posY;
+        textoConfig.lineHeight = parseFloat(document.getElementById('textoLineHeight').value) || textoConfig.lineHeight;
+        textoConfig.spacing = parseInt(document.getElementById('textoSpacing').value) || textoConfig.spacing;
+        
+        console.log('⚠️ VALORES REALES AL GENERAR:');
+        console.log('textoConfig:', JSON.stringify(textoConfig));
+        console.log('imgConfig:', JSON.stringify(imgConfig));
+        console.log('circ1Config:', JSON.stringify(circ1Config));
+        
+        // 1. ESPERAR A QUE LAS FUENTES SE CARGUEN
+        await waitForFonts();
+        
+        const canvas=document.createElement('canvas');
+        const tam=document.getElementById('plantillaTamano').value;
+        canvas.width=1082;
+        canvas.height=tam==='916'?1920:1417;
+        const ctx=canvas.getContext('2d');
+        
+        console.log(`Canvas creado: ${canvas.width}x${canvas.height}`);
+        
+        ctx.fillStyle='#000';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        console.log('Fondo negro dibujado');
+        
+        // 2. CARGAR IMAGEN PRINCIPAL (con object-fit: cover)
+        if(imagenPrincipalSeleccionada){
+            console.log('=== IMAGEN PRINCIPAL ===');
+            console.log('Tipo:',imagenPrincipalSeleccionada.substring(0,30)+'...');
+            console.log('¿Es base64?',imagenPrincipalSeleccionada.startsWith('data:'));
+            
+            const img=new Image();
+            await new Promise((res,rej)=>{
+                const timeout=setTimeout(()=>{
+                    console.error('TIMEOUT imagen principal');
+                    rej(new Error('Timeout imagen principal'));
+                },10000);
+                
+                img.onload=()=>{
+                    clearTimeout(timeout);
+                    console.log(`Imagen cargada: ${img.width}x${img.height}`);
+                    res();
+                };
+                
+                img.onerror=(e)=>{
+                    clearTimeout(timeout);
+                    console.error('ERROR cargando:',e);
+                    rej(new Error('Error cargando imagen principal'));
+                };
+                
+                img.src=imagenPrincipalSeleccionada;
+            });
+            
+            // Calcular área destino en canvas
+            console.log('imgConfig:',imgConfig);
+            const destW=canvas.width*(imgConfig.ancho/100);
+            const destH=canvas.height*(imgConfig.alto/100);
+            const destX=(canvas.width*(imgConfig.posX/100));
+            const destY=(canvas.height*(imgConfig.posY/100));
+            console.log(`Destino canvas: x=${destX}, y=${destY}, w=${destW}, h=${destH}`);
+            
+            // OBJECT-FIT: COVER - Calcular recorte
+            const imgAspect=img.width/img.height;
+            const destAspect=destW/destH;
+            console.log(`Aspectos: imagen=${imgAspect.toFixed(3)}, destino=${destAspect.toFixed(3)}`);
+            
+            let srcX=0,srcY=0,srcW=img.width,srcH=img.height;
+            
+            if(imgAspect>destAspect){
+                // Imagen más ancha - recortar lados
+                console.log('→ Imagen MÁS ANCHA, recortar lados');
+                srcW=img.height*destAspect;
+                srcX=(img.width-srcW)/2;
+                console.log(`  srcW=${srcW.toFixed(1)}, srcX=${srcX.toFixed(1)} (centrado)`);
+            }else{
+                // Imagen más alta - recortar arriba/abajo
+                console.log('→ Imagen MÁS ALTA, recortar arriba/abajo');
+                srcH=img.width/destAspect;
+                srcY=(img.height-srcH)/2;
+                console.log(`  srcH=${srcH.toFixed(1)}, srcY=${srcY.toFixed(1)} (centrado)`);
+            }
+            
+            console.log(`RECORTE: src(${srcX.toFixed(1)}, ${srcY.toFixed(1)}, ${srcW.toFixed(1)}, ${srcH.toFixed(1)})`);
+            console.log(`DESTINO: dest(${destX}, ${destY}, ${destW}, ${destH})`);
+            
+            ctx.drawImage(img,srcX,srcY,srcW,srcH,destX,destY,destW,destH);
+            console.log('✅ Imagen principal DIBUJADA (cover)');
+        }else{
+            console.warn('⚠️ NO hay imagen principal seleccionada');
+        }
+        
+        // 3. CARGAR IMAGEN 1 (con object-fit: cover)
+        if(imagenesComposicion.imagen1){
+            console.log('Cargando imagen 1...');
+            const img=new Image();
+            await new Promise((res,rej)=>{
+                const timeout=setTimeout(()=>rej(new Error('Timeout imagen 1')),10000);
+                img.onload=()=>{clearTimeout(timeout);console.log(`✅ Imagen 1: ${img.width}x${img.height}`);res();};
+                img.onerror=()=>{clearTimeout(timeout);rej(new Error('Error cargando imagen 1'));};
+                img.src=imagenesComposicion.imagen1;
+            });
+            
+            // Calcular área destino
+            const destW=canvas.width*(img1Config.ancho/100);
+            const destH=canvas.height*(img1Config.alto/100);
+            const destX=(canvas.width*(img1Config.posX/100))-destW/2;
+            const destY=(canvas.height*(img1Config.posY/100))-destH/2;
+            
+            // OBJECT-FIT: COVER
+            const imgAspect=img.width/img.height;
+            const destAspect=destW/destH;
+            
+            let srcX=0,srcY=0,srcW=img.width,srcH=img.height;
+            
+            if(imgAspect>destAspect){
+                srcW=img.height*destAspect;
+                srcX=(img.width-srcW)/2;
+            }else{
+                srcH=img.width/destAspect;
+                srcY=(img.height-srcH)/2;
+            }
+            
+            ctx.drawImage(img,srcX,srcY,srcW,srcH,destX,destY,destW,destH);
+            console.log('✅ Imagen 1 DIBUJADA (cover)');
+        }
+        
+        // 4. CARGAR CÍRCULO 1 (con object-fit: cover via clip + borde blanco)
+        if(imagenesComposicion.circulo1){
+            console.log('=== CÍRCULO 1 ===');
+            console.log('circ1Config:',circ1Config);
+            
+            const img=new Image();
+            await new Promise((res,rej)=>{
+                const timeout=setTimeout(()=>rej(new Error('Timeout círculo 1')),10000);
+                img.onload=()=>{clearTimeout(timeout);console.log(`Imagen: ${img.width}x${img.height}`);res();};
+                img.onerror=()=>{clearTimeout(timeout);rej(new Error('Error cargando círculo 1'));};
+                img.src=imagenesComposicion.circulo1;
+            });
+            
+            // Usar misma escala que texto según formato
+            const escalaCirculo = tam==='916' ? 2.0 : 1.8;
+            const s=circ1Config.tam*escalaCirculo;
+            // CORRECCIÓN: posX/posY son la esquina superior-izquierda (como en CSS), no el centro
+            const x=(canvas.width*(circ1Config.posX/100));
+            const y=(canvas.height*(circ1Config.posY/100));
+            const centerX=x+s/2;
+            const centerY=y+s/2;
+            
+            console.log(`Tamaño: ${s}px, TopLeft: (${x}, ${y}), Centro: (${centerX}, ${centerY})`);
+            
+            // OBJECT-FIT: COVER dentro del círculo
+            const imgAspect=img.width/img.height;
+            let srcX=0,srcY=0,srcW=img.width,srcH=img.height;
+            
+            if(imgAspect>1){
+                srcW=img.height;
+                srcX=(img.width-srcW)/2;
+            }else{
+                srcH=img.width;
+                srcY=(img.height-srcH)/2;
+            }
+            
+            // Dibujar círculo con imagen
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(centerX,centerY,s/2,0,Math.PI*2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img,srcX,srcY,srcW,srcH,x,y,s,s);
+            ctx.restore();
+            
+            // BORDE BLANCO (4px * 2 = 8px en canvas)
+            ctx.strokeStyle='#ffffff';
+            ctx.lineWidth=8;
+            ctx.beginPath();
+            ctx.arc(centerX,centerY,s/2,0,Math.PI*2);
+            ctx.stroke();
+            
+            console.log('✅ Círculo 1 DIBUJADO (cover + borde)');
+        }
+        
+        // 5. CARGAR CÍRCULO 2 (con object-fit: cover via clip + borde blanco)
+        if(imagenesComposicion.circulo2){
+            console.log('=== CÍRCULO 2 ===');
+            console.log('circ2Config:',circ2Config);
+            
+            const img=new Image();
+            await new Promise((res,rej)=>{
+                const timeout=setTimeout(()=>rej(new Error('Timeout círculo 2')),10000);
+                img.onload=()=>{clearTimeout(timeout);console.log(`Imagen: ${img.width}x${img.height}`);res();};
+                img.onerror=()=>{clearTimeout(timeout);rej(new Error('Error cargando círculo 2'));};
+                img.src=imagenesComposicion.circulo2;
+            });
+            
+            // Usar misma escala que texto según formato
+            const escalaCirculo = tam==='916' ? 2.0 : 1.8;
+            const s=circ2Config.tam*escalaCirculo;
+            // CORRECCIÓN: posX/posY son la esquina superior-izquierda (como en CSS), no el centro
+            const x=(canvas.width*(circ2Config.posX/100));
+            const y=(canvas.height*(circ2Config.posY/100));
+            const centerX=x+s/2;
+            const centerY=y+s/2;
+            
+            console.log(`Tamaño: ${s}px, TopLeft: (${x}, ${y}), Centro: (${centerX}, ${centerY})`);
+            
+            // OBJECT-FIT: COVER dentro del círculo
+            const imgAspect=img.width/img.height;
+            let srcX=0,srcY=0,srcW=img.width,srcH=img.height;
+            
+            if(imgAspect>1){
+                srcW=img.height;
+                srcX=(img.width-srcW)/2;
+            }else{
+                srcH=img.width;
+                srcY=(img.height-srcH)/2;
+            }
+            
+            // Dibujar círculo con imagen
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(centerX,centerY,s/2,0,Math.PI*2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(img,srcX,srcY,srcW,srcH,x,y,s,s);
+            ctx.restore();
+            
+            // BORDE BLANCO (4px * 2 = 8px en canvas)
+            ctx.strokeStyle='#ffffff';
+            ctx.lineWidth=8;
+            ctx.beginPath();
+            ctx.arc(centerX,centerY,s/2,0,Math.PI*2);
+            ctx.stroke();
+            
+            console.log('✅ Círculo 2 DIBUJADO (cover + borde)');
+        }
+        
+        // 6. CARGAR PLANTILLA
+        const urlPlantilla=obtenerUrlPlantilla();
+        console.log('URL Plantilla:',urlPlantilla);
+        
+        const plantillaImg=new Image();
+        await new Promise((res,rej)=>{
+            const timeout=setTimeout(()=>{
+                console.error('TIMEOUT plantilla');
+                rej(new Error('Timeout plantilla'));
+            },10000);
+            
+            plantillaImg.onload=()=>{
+                clearTimeout(timeout);
+                console.log(`✅ Plantilla cargada: ${plantillaImg.width}x${plantillaImg.height}`);
+                res();
+            };
+            
+            plantillaImg.onerror=(e)=>{
+                clearTimeout(timeout);
+                console.error('ERROR cargando plantilla:',e);
+                rej(new Error('Error cargando plantilla'));
+            };
+            
+            plantillaImg.src=urlPlantilla;
+        });
+        
+        ctx.drawImage(plantillaImg,0,0,canvas.width,canvas.height);
+        console.log('✅ Plantilla DIBUJADA');
+        
+        // 7. DIBUJAR TEXTO
+        const titulo=document.getElementById('tituloGenerado').value.trim();
+        if(titulo){
+            console.log('=== TEXTO ===');
+            console.log('textoConfig:',textoConfig);
+            console.log('Título:',titulo);
+            
+            ctx.fillStyle=textoConfig.color;
+            
+            // Escala diferente según formato:
+            // 9:16: preview 540px → canvas 1082px = ×2.0
+            // Cuadrado: preview 600px → canvas 1082px = ×1.8
+            const escala = tam==='916' ? 2.0 : 1.8;
+            const fontSize=textoConfig.tam*escala;
+            
+            // NOTA: Canvas no soporta letterSpacing nativamente
+            // Spacing usa la misma escala del formato para consistencia
+            const spacing=textoConfig.spacing*escala;
+            
+            console.log(`Formato: ${tam}, Escala: ${escala}`);
+            console.log(`fontSize: ${fontSize}px (tam=${textoConfig.tam} * ${escala})`);
+            console.log(`spacing: ${spacing}px (${textoConfig.spacing} * 2.0 FIJO)`);
+            console.log(`lineHeight: ${textoConfig.lineHeight}`);
+            
+            ctx.font=`900 ${fontSize}px PackyGreat, Impact, sans-serif`;
+            ctx.textAlign=textoConfig.align;
+            ctx.shadowColor='rgba(0,0,0,0.8)';
+            ctx.shadowBlur=8;
+            ctx.shadowOffsetX=3;
+            ctx.shadowOffsetY=3;
+            
+            const maxWidth=canvas.width-100;
+            const words=titulo.split(' ');
+            const lines=[];
+            let currentLine=words[0];
+            
+            // Mide el ancho real incluyendo letterSpacing
+            const measureLineWidth=(text)=>{
+                if(spacing>2){
+                    let w=0;
+                    for(let char of text){ w+=ctx.measureText(char).width+spacing; }
+                    if(text.length>0) w-=spacing;
+                    return w;
+                }
+                return ctx.measureText(text).width;
+            };
+            
+            for(let i=1;i<words.length;i++){
+                const test=currentLine+' '+words[i];
+                if(measureLineWidth(test)>maxWidth){
+                    lines.push(currentLine);
+                    currentLine=words[i];
+                }else{
+                    currentLine=test;
+                }
+            }
+            lines.push(currentLine);
+            
+            const lineHeight=fontSize*textoConfig.lineHeight;
+            const topY=canvas.height*(textoConfig.posY/100);
+            // Ajuste para que coincida con preview: usar fontSize completo
+            const startY=topY+fontSize;
+            
+            let xPos=50;
+            if(textoConfig.align==='center')xPos=canvas.width/2;
+            else if(textoConfig.align==='right')xPos=canvas.width-50;
+            
+            console.log(`Líneas: ${lines.length}`);
+            console.log(`lineHeight: ${lineHeight}px`);
+            console.log(`topY: ${topY}, startY: ${startY} (baseline: topY + fontSize)`);
+            console.log(`xPos: ${xPos} (align: ${textoConfig.align})`);
+            
+            // Dibujar con letterSpacing simple (solo si spacing > 2)
+            if(spacing>2){
+                // Dibujar carácter por carácter con espaciado
+                lines.forEach((line,i)=>{
+                    let currentX=xPos;
+                    const y=startY+(i*lineHeight);
+                    
+                    // Si align center/right, calcular ancho total primero
+                    if(textoConfig.align!=='left'){
+                        let totalWidth=0;
+                        for(let char of line){
+                            totalWidth+=ctx.measureText(char).width+spacing;
+                        }
+                        totalWidth-=spacing; // Quitar último espacio
+                        
+                        if(textoConfig.align==='center'){
+                            currentX=xPos-totalWidth/2;
+                        }else{
+                            currentX=xPos-totalWidth;
+                        }
+                    }
+                    
+                    // Dibujar cada carácter
+                    for(let char of line){
+                        ctx.fillText(char,currentX,y);
+                        currentX+=ctx.measureText(char).width+spacing;
+                    }
+                });
+            }else{
+                // Sin letterSpacing, dibujar normal
+                lines.forEach((line,i)=>{
+                    ctx.fillText(line,xPos,startY+(i*lineHeight));
+                });
+            }
+            
+            console.log(`✅ Texto DIBUJADO (${lines.length} líneas, spacing=${spacing>2?'SÍ':'NO'})`);
+        }else{
+            console.warn('⚠️ NO hay título para dibujar');
+        }
+        
+        // 8. DELAY
+        console.log('Esperando 500ms...');
+        await new Promise(res=>setTimeout(res,500));
+        
+        // 9. CONVERTIR A BASE64
+        console.log('Convirtiendo canvas a base64...');
+        let imageBase64;
+        try{
+            imageBase64=canvas.toDataURL('image/png');
+            console.log(`✅ Base64 generado, tamaño: ${imageBase64.length} chars`);
+            console.log('Primeros 100 chars:',imageBase64.substring(0,100));
+        }catch(e){
+            console.error('❌ ERROR en toDataURL():',e);
+            throw new Error('Canvas contaminado (tainted). Verifica que todas las imágenes vengan del proxy.');
+        }
+        
+        // 10. ENVIAR A N8N
+        console.log('Enviando a n8n...');
+        const response=await fetch(`${N8N_URL}/webhook/generar-lamina`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                usuario:usuarioActual,
+                titulo:document.getElementById('tituloGenerado').value.trim(),
+                post_x:document.getElementById('postX').value.trim(),
+                hashtags:document.getElementById('hashtags').value.trim(),
+                imageBase64:imageBase64,
+                plantilla:{
+                    tamano:document.getElementById('plantillaTamano').value
+                }
+            })
+        });
+        
+        if(!response.ok){
+            const errorText=await response.text();
+            console.error('Error n8n:',errorText);
+            throw new Error(`Error en n8n: ${response.status}`);
+        }
+        
+        const data=await response.json();
+        console.log('Respuesta n8n:',data);
+        
+        if(data.url||data.webViewLink){
+            const url=data.url||data.webViewLink;
+            toast('✅ Lámina enviada a Drive','ok');
+            setTimeout(()=>window.open(url,'_blank'),1000);
+        }else{
+            toast('✅ Enviada correctamente','ok');
+        }
+        
+        console.log('=== FIN GENERACIÓN ===');
+        
+    }catch(e){
+        console.error('❌ ERROR COMPLETO:',e);
+        console.error('Stack:',e.stack);
+        toast(`❌ ${e.message}`,'err');
+    }finally{
+        b.disabled=false;
+        b.innerHTML='🎨 Generar';
+    }
+}
+
+function limpiar(){
+    editorCanvas=null;
+    laminaActualId=null;
+    document.getElementById('editorCanvas').innerHTML='';
+    document.getElementById('editorCanvas').style.display='none';
+    document.getElementById('placeholder').style.display='block';
+    document.getElementById('previewContainer').classList.remove('has-content');
+    
+    document.getElementById('textoBase').value='';
+    document.getElementById('tituloGenerado').value='';
+    document.getElementById('postX').value='';
+    document.getElementById('hashtags').value='';
+    document.getElementById('buscarImagenPrincipal').value='';
+    document.getElementById('tipoComposicion').value='ninguna';
+    cambiarComposicion();
+    
+    imagenPrincipalSeleccionada=null;
+    imagenesComposicion={};
+    
+    imgConfig={ancho:100,alto:60,posX:0,posY:0};
+    img1Config={ancho:40,alto:30,posX:70,posY:15};
+    circ1Config={tam:150,posX:70,posY:15};
+    circ2Config={tam:150,posX:25,posY:15};
+    textoConfig={tam:55,posY:75,align:'left',color:'#ffffff',lineHeight:1.2,spacing:1};
+    
+    document.getElementById('imgAncho').value=100;
+    document.getElementById('imgAlto').value=60;
+    document.getElementById('imgPosX').value=0;
+    document.getElementById('imgPosY').value=0;
+    updateImgAncho(100);
+    updateImgAlto(60);
+    updateImgPosX(0);
+    updateImgPosY(0);
+    
+    document.querySelectorAll('.gallery-section').forEach(g=>g.style.display='none');
+    document.querySelectorAll('.image-gallery').forEach(g=>g.innerHTML='');
+    
+    document.getElementById('btnGuardar').disabled=true;
+    toast('✅ Limpiado','ok');
+}
+
+function toast(msg,type='info'){
+    const el=document.getElementById('toast');
+    el.textContent=msg;
+    el.className=`toast ${type}`;
+    el.style.display='block';
+    clearTimeout(window._toastT);
+    window._toastT=setTimeout(()=>el.style.display='none',4000);
+}
+</script>
+</body>
+</html>
