@@ -39,6 +39,8 @@
         .btn-primary:hover:not(:disabled) { background: #fbbf24; }
         .btn-secondary { background: #1c1d23; color: #f0f0f5; border: 1px solid rgba(255,255,255,0.07); width: 100%; margin-top: 8px; }
         .btn-secondary:hover { border-color: #f59e0b; }
+        .btn-success { background: #10b981; color: #fff; width: 100%; margin-top: 8px; }
+        .btn-success:hover:not(:disabled) { background: #34d399; }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         
         .preview-area { background: #141519; border-radius: 10px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -150,17 +152,18 @@
             <div class="divider"></div>
             
             <div class="field">
-                <label class="field-label">Título</label>
-                <textarea id="tituloGenerado" rows="2"></textarea>
+                <label class="field-label">Título <span style="color:#6b7280;font-size:9px;font-style:normal;">(editable — Enter para salto de línea)</span></label>
+                <textarea id="tituloGenerado" rows="5" style="font-family:'Outfit',sans-serif;resize:vertical;white-space:pre-wrap;"></textarea>
             </div>
             <div class="field">
                 <label class="field-label">Post X</label>
-                <textarea id="postX" rows="2"></textarea>
+                <textarea id="postX" rows="3" style="resize:vertical;"></textarea>
             </div>
             <div class="field">
                 <label class="field-label">Hashtags</label>
                 <input type="text" id="hashtags">
             </div>
+            <button class="btn btn-success" onclick="actualizarContenido()" id="btnActualizar">📝 Actualizar</button>
             
             <div class="divider"></div>
             
@@ -403,7 +406,7 @@
                     <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="textoPosYVal">75%</span></div>
                     <div class="slider-row">
                         <button onclick="adjustTextoPosY(-5)">↑</button>
-                        <input type="range" id="textoPosY" min="50" max="95" value="75" oninput="updateTextoPosY(this.value)">
+                        <input type="range" id="textoPosY" min="63" max="85" value="75" oninput="updateTextoPosY(this.value)">
                         <button onclick="adjustTextoPosY(5)">↓</button>
                     </div>
                 </div>
@@ -655,6 +658,7 @@ async function generarContenido(){
         document.getElementById('tituloGenerado').value=c.título||c.titulo||'';
         document.getElementById('postX').value=c.postX||c.post_x||'';
         document.getElementById('hashtags').value=c.hashtags||'';
+        document.getElementById('cambiosSolicitados').value='';
         toast('✅ Contenido generado','ok');
     }catch(e){toast(`❌ ${e.message}`,'err');}finally{b.disabled=false;b.innerHTML='✨ Generar';}
 }
@@ -847,8 +851,8 @@ function actualizarFormato(){
 }
 
 function generarPreview(){
-    const ti=document.getElementById('tituloGenerado').value.trim();
-    if(!ti){toast('⚠ Genera contenido primero','warn');return;}
+    const ti=document.getElementById('tituloGenerado').value;
+    if(!ti.trim()){toast('⚠ Genera contenido primero','warn');return;}
     
     editorCanvas=document.getElementById('editorCanvas');
     editorCanvas.innerHTML='';
@@ -944,6 +948,8 @@ function generarPreview(){
     texto.style.color=textoConfig.color;
     texto.style.lineHeight=textoConfig.lineHeight;
     texto.style.letterSpacing=`${textoConfig.spacing}px`;
+    texto.style.bottom='13%';
+    texto.style.overflow='hidden';
     texto.textContent=ti;
     editorCanvas.appendChild(texto);
     
@@ -994,6 +1000,8 @@ function updateTexto(){
     if(t){
         t.style.fontSize=`${textoConfig.tam}px`;
         t.style.top=`${textoConfig.posY}%`;
+        t.style.bottom='13%';
+        t.style.overflow='hidden';
         t.style.textAlign=textoConfig.align;
         t.style.color=textoConfig.color;
         t.style.lineHeight=textoConfig.lineHeight;
@@ -1036,12 +1044,48 @@ function adjustCirc2Y(d){const v=Math.max(0,Math.min(100,circ2Config.posY+d));do
 function updateTextoTam(v){textoConfig.tam=parseInt(v);document.getElementById('textoTamVal').textContent=v+'px';updateTexto();}
 function adjustTextoTam(d){const v=Math.max(30,Math.min(100,textoConfig.tam+d));document.getElementById('textoTam').value=v;updateTextoTam(v);}
 function updateTextoPosY(v){textoConfig.posY=parseInt(v);document.getElementById('textoPosYVal').textContent=v+'%';updateTexto();}
-function adjustTextoPosY(d){const v=Math.max(50,Math.min(95,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
+function adjustTextoPosY(d){const v=Math.max(63,Math.min(85,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
 function updateTextoLineHeight(v){textoConfig.lineHeight=parseFloat(v);document.getElementById('textoLineHeightVal').textContent=v;updateTexto();}
 function adjustTextoLineHeight(d){const v=Math.max(0.8,Math.min(2.0,textoConfig.lineHeight+d));document.getElementById('textoLineHeight').value=v.toFixed(1);updateTextoLineHeight(v.toFixed(1));}
 function updateTextoSpacing(v){textoConfig.spacing=parseInt(v);document.getElementById('textoSpacingVal').textContent=v+'px';updateTexto();}
 function adjustTextoSpacing(d){const v=Math.max(-5,Math.min(20,textoConfig.spacing+d));document.getElementById('textoSpacing').value=v;updateTextoSpacing(v);}
 function setTextoAlign(a){textoConfig.align=a;updateTexto();}
+
+async function actualizarContenido(){
+    const titulo=document.getElementById('tituloGenerado').value.trim();
+    const postX=document.getElementById('postX').value.trim();
+    const hashtags=document.getElementById('hashtags').value.trim();
+    if(!titulo){toast('⚠ Escribe un título','warn');return;}
+    const b=document.getElementById('btnActualizar');
+    b.disabled=true;
+    b.innerHTML='<span class="spinner" style="border-top-color:#fff;border-color:rgba(255,255,255,0.2);border-top-color:#fff;"></span> Actualizando...';
+    try{
+        const payload={
+            usuario:usuarioActual,
+            titulo:titulo,
+            post_x:postX,
+            hashtags:hashtags
+        };
+        if(laminaActualId)payload.id=laminaActualId;
+        const r=await fetch(`${N8N_URL}/webhook/actualizar-contenido`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(payload)
+        });
+        if(!r.ok)throw new Error('Error al actualizar contenido');
+        // Reflejar título editado en la Vista Previa
+        const overlay=document.getElementById('textoOverlay');
+        if(overlay){
+            overlay.textContent=document.getElementById('tituloGenerado').value;
+        }
+        toast('✅ Contenido actualizado en Sheet','ok');
+    }catch(e){
+        toast(`❌ ${e.message}`,'err');
+    }finally{
+        b.disabled=false;
+        b.innerHTML='📝 Actualizar';
+    }
+}
 
 async function guardarEnSheet(){
     if(!editorCanvas){toast('⚠ Genera vista previa primero','warn');return;}
@@ -1396,8 +1440,8 @@ async function generarYEnviarLamina(){
         console.log('✅ Plantilla DIBUJADA');
         
         // 7. DIBUJAR TEXTO
-        const titulo=document.getElementById('tituloGenerado').value.trim();
-        if(titulo){
+        const titulo=document.getElementById('tituloGenerado').value;
+        if(titulo.trim()){
             console.log('=== TEXTO ===');
             console.log('textoConfig:',textoConfig);
             console.log('Título:',titulo);
@@ -1427,10 +1471,8 @@ async function generarYEnviarLamina(){
             ctx.shadowOffsetY=3;
             
             const maxWidth=canvas.width-100;
-            const words=titulo.split(' ');
             const lines=[];
-            let currentLine=words[0];
-            
+
             // Mide el ancho real incluyendo letterSpacing
             const measureLineWidth=(text)=>{
                 if(spacing>2){
@@ -1441,17 +1483,27 @@ async function generarYEnviarLamina(){
                 }
                 return ctx.measureText(text).width;
             };
-            
-            for(let i=1;i<words.length;i++){
-                const test=currentLine+' '+words[i];
-                if(measureLineWidth(test)>maxWidth){
-                    lines.push(currentLine);
-                    currentLine=words[i];
-                }else{
-                    currentLine=test;
+
+            // Respetar saltos de línea manuales del usuario (Enter en el textarea)
+            const rawLines=titulo.split('\n');
+            for(const rawLine of rawLines){
+                if(rawLine.trim()===''){
+                    lines.push('');
+                    continue;
                 }
+                const words=rawLine.split(' ');
+                let currentLine=words[0];
+                for(let i=1;i<words.length;i++){
+                    const test=currentLine+' '+words[i];
+                    if(measureLineWidth(test)>maxWidth){
+                        lines.push(currentLine);
+                        currentLine=words[i];
+                    }else{
+                        currentLine=test;
+                    }
+                }
+                lines.push(currentLine);
             }
-            lines.push(currentLine);
             
             const lineHeight=fontSize*textoConfig.lineHeight;
             const topY=canvas.height*(textoConfig.posY/100);
@@ -1466,14 +1518,24 @@ async function generarYEnviarLamina(){
             console.log(`lineHeight: ${lineHeight}px`);
             console.log(`topY: ${topY}, startY: ${startY} (baseline: topY + fontSize)`);
             console.log(`xPos: ${xPos} (align: ${textoConfig.align})`);
-            
+
+            // CLIP REGION: limitar dibujo al área verde de la plantilla (63%–87% vertical)
+            const clipTop=canvas.height*0.63;
+            const clipBottom=canvas.height*0.87;
+            const clipLeft=canvas.width*0.05;
+            const clipRight=canvas.width*0.95;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(clipLeft,clipTop,clipRight-clipLeft,clipBottom-clipTop);
+            ctx.clip();
+
             // Dibujar con letterSpacing simple (solo si spacing > 2)
             if(spacing>2){
                 // Dibujar carácter por carácter con espaciado
                 lines.forEach((line,i)=>{
                     let currentX=xPos;
                     const y=startY+(i*lineHeight);
-                    
+
                     // Si align center/right, calcular ancho total primero
                     if(textoConfig.align!=='left'){
                         let totalWidth=0;
@@ -1481,14 +1543,14 @@ async function generarYEnviarLamina(){
                             totalWidth+=ctx.measureText(char).width+spacing;
                         }
                         totalWidth-=spacing; // Quitar último espacio
-                        
+
                         if(textoConfig.align==='center'){
                             currentX=xPos-totalWidth/2;
                         }else{
                             currentX=xPos-totalWidth;
                         }
                     }
-                    
+
                     // Dibujar cada carácter
                     for(let char of line){
                         ctx.fillText(char,currentX,y);
@@ -1501,7 +1563,8 @@ async function generarYEnviarLamina(){
                     ctx.fillText(line,xPos,startY+(i*lineHeight));
                 });
             }
-            
+
+            ctx.restore(); // liberar clip region
             console.log(`✅ Texto DIBUJADO (${lines.length} líneas, spacing=${spacing>2?'SÍ':'NO'})`);
         }else{
             console.warn('⚠️ NO hay título para dibujar');
