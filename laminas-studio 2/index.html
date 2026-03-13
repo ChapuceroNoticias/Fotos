@@ -937,21 +937,35 @@ function generarPreview(){
     plantilla.style.backgroundImage=`url('${urlPlantilla}')`;
     editorCanvas.appendChild(plantilla);
     
+    // Contenedor de clip: cubre exactamente el área verde (63%–87% alto, 5%–95% ancho)
+    // overflow:hidden garantiza que el texto nunca salga de estos límites
+    const textZone=document.createElement('div');
+    textZone.id='textZone';
+    textZone.style.position='absolute';
+    textZone.style.top='63%';
+    textZone.style.bottom='13%';
+    textZone.style.left='5%';
+    textZone.style.right='5%';
+    textZone.style.overflow='hidden';
+    textZone.style.zIndex='15';
+    textZone.style.pointerEvents='none';
+
     const texto=document.createElement('div');
     texto.className='text-overlay';
     texto.id='textoOverlay';
+    // posY se mapea al interior de la zona: zona ocupa 63%–87% del canvas (24 puntos)
+    const posInZone=Math.max(0,(textoConfig.posY-63)/24*100);
+    texto.style.top=`${posInZone}%`;
+    texto.style.left='0';
+    texto.style.right='0';
     texto.style.fontSize=`${textoConfig.tam}px`;
-    texto.style.top=`${textoConfig.posY}%`;
-    texto.style.left='5%';
-    texto.style.right='5%';
     texto.style.textAlign=textoConfig.align;
     texto.style.color=textoConfig.color;
     texto.style.lineHeight=textoConfig.lineHeight;
     texto.style.letterSpacing=`${textoConfig.spacing}px`;
-    texto.style.bottom='13%';
-    texto.style.overflow='hidden';
     texto.textContent=ti;
-    editorCanvas.appendChild(texto);
+    textZone.appendChild(texto);
+    editorCanvas.appendChild(textZone);
     
     document.getElementById('btnGuardar').disabled=false;
     toast('✅ Vista previa generada','ok');
@@ -998,10 +1012,9 @@ function updateEditor(){
 function updateTexto(){
     const t=document.getElementById('textoOverlay');
     if(t){
+        const posInZone=Math.max(0,(textoConfig.posY-63)/24*100);
+        t.style.top=`${posInZone}%`;
         t.style.fontSize=`${textoConfig.tam}px`;
-        t.style.top=`${textoConfig.posY}%`;
-        t.style.bottom='13%';
-        t.style.overflow='hidden';
         t.style.textAlign=textoConfig.align;
         t.style.color=textoConfig.color;
         t.style.lineHeight=textoConfig.lineHeight;
@@ -1533,8 +1546,9 @@ async function generarYEnviarLamina(){
             if(spacing>2){
                 // Dibujar carácter por carácter con espaciado
                 lines.forEach((line,i)=>{
-                    let currentX=xPos;
                     const y=startY+(i*lineHeight);
+                    if(y-fontSize>clipBottom)return; // saltar líneas fuera del área
+                    let currentX=xPos;
 
                     // Si align center/right, calcular ancho total primero
                     if(textoConfig.align!=='left'){
@@ -1560,7 +1574,9 @@ async function generarYEnviarLamina(){
             }else{
                 // Sin letterSpacing, dibujar normal
                 lines.forEach((line,i)=>{
-                    ctx.fillText(line,xPos,startY+(i*lineHeight));
+                    const y=startY+(i*lineHeight);
+                    if(y-fontSize>clipBottom)return; // saltar líneas fuera del área
+                    ctx.fillText(line,xPos,y);
                 });
             }
 
