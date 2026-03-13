@@ -406,7 +406,7 @@
                     <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="textoPosYVal">75%</span></div>
                     <div class="slider-row">
                         <button onclick="adjustTextoPosY(-5)">↑</button>
-                        <input type="range" id="textoPosY" min="50" max="95" value="75" oninput="updateTextoPosY(this.value)">
+                        <input type="range" id="textoPosY" min="63" max="85" value="75" oninput="updateTextoPosY(this.value)">
                         <button onclick="adjustTextoPosY(5)">↓</button>
                     </div>
                 </div>
@@ -948,6 +948,8 @@ function generarPreview(){
     texto.style.color=textoConfig.color;
     texto.style.lineHeight=textoConfig.lineHeight;
     texto.style.letterSpacing=`${textoConfig.spacing}px`;
+    texto.style.bottom='13%';
+    texto.style.overflow='hidden';
     texto.textContent=ti;
     editorCanvas.appendChild(texto);
     
@@ -998,6 +1000,8 @@ function updateTexto(){
     if(t){
         t.style.fontSize=`${textoConfig.tam}px`;
         t.style.top=`${textoConfig.posY}%`;
+        t.style.bottom='13%';
+        t.style.overflow='hidden';
         t.style.textAlign=textoConfig.align;
         t.style.color=textoConfig.color;
         t.style.lineHeight=textoConfig.lineHeight;
@@ -1040,7 +1044,7 @@ function adjustCirc2Y(d){const v=Math.max(0,Math.min(100,circ2Config.posY+d));do
 function updateTextoTam(v){textoConfig.tam=parseInt(v);document.getElementById('textoTamVal').textContent=v+'px';updateTexto();}
 function adjustTextoTam(d){const v=Math.max(30,Math.min(100,textoConfig.tam+d));document.getElementById('textoTam').value=v;updateTextoTam(v);}
 function updateTextoPosY(v){textoConfig.posY=parseInt(v);document.getElementById('textoPosYVal').textContent=v+'%';updateTexto();}
-function adjustTextoPosY(d){const v=Math.max(50,Math.min(95,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
+function adjustTextoPosY(d){const v=Math.max(63,Math.min(85,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
 function updateTextoLineHeight(v){textoConfig.lineHeight=parseFloat(v);document.getElementById('textoLineHeightVal').textContent=v;updateTexto();}
 function adjustTextoLineHeight(d){const v=Math.max(0.8,Math.min(2.0,textoConfig.lineHeight+d));document.getElementById('textoLineHeight').value=v.toFixed(1);updateTextoLineHeight(v.toFixed(1));}
 function updateTextoSpacing(v){textoConfig.spacing=parseInt(v);document.getElementById('textoSpacingVal').textContent=v+'px';updateTexto();}
@@ -1514,14 +1518,24 @@ async function generarYEnviarLamina(){
             console.log(`lineHeight: ${lineHeight}px`);
             console.log(`topY: ${topY}, startY: ${startY} (baseline: topY + fontSize)`);
             console.log(`xPos: ${xPos} (align: ${textoConfig.align})`);
-            
+
+            // CLIP REGION: limitar dibujo al área verde de la plantilla (63%–87% vertical)
+            const clipTop=canvas.height*0.63;
+            const clipBottom=canvas.height*0.87;
+            const clipLeft=canvas.width*0.05;
+            const clipRight=canvas.width*0.95;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(clipLeft,clipTop,clipRight-clipLeft,clipBottom-clipTop);
+            ctx.clip();
+
             // Dibujar con letterSpacing simple (solo si spacing > 2)
             if(spacing>2){
                 // Dibujar carácter por carácter con espaciado
                 lines.forEach((line,i)=>{
                     let currentX=xPos;
                     const y=startY+(i*lineHeight);
-                    
+
                     // Si align center/right, calcular ancho total primero
                     if(textoConfig.align!=='left'){
                         let totalWidth=0;
@@ -1529,14 +1543,14 @@ async function generarYEnviarLamina(){
                             totalWidth+=ctx.measureText(char).width+spacing;
                         }
                         totalWidth-=spacing; // Quitar último espacio
-                        
+
                         if(textoConfig.align==='center'){
                             currentX=xPos-totalWidth/2;
                         }else{
                             currentX=xPos-totalWidth;
                         }
                     }
-                    
+
                     // Dibujar cada carácter
                     for(let char of line){
                         ctx.fillText(char,currentX,y);
@@ -1549,7 +1563,8 @@ async function generarYEnviarLamina(){
                     ctx.fillText(line,xPos,startY+(i*lineHeight));
                 });
             }
-            
+
+            ctx.restore(); // liberar clip region
             console.log(`✅ Texto DIBUJADO (${lines.length} líneas, spacing=${spacing>2?'SÍ':'NO'})`);
         }else{
             console.warn('⚠️ NO hay título para dibujar');
