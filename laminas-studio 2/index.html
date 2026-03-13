@@ -406,7 +406,7 @@
                     <div class="slider-label"><span>Posición Y</span><span class="slider-value" id="textoPosYVal">75%</span></div>
                     <div class="slider-row">
                         <button onclick="adjustTextoPosY(-5)">↑</button>
-                        <input type="range" id="textoPosY" min="63" max="85" value="75" oninput="updateTextoPosY(this.value)">
+                        <input type="range" id="textoPosY" min="71" max="91" value="75" oninput="updateTextoPosY(this.value)">
                         <button onclick="adjustTextoPosY(5)">↓</button>
                     </div>
                 </div>
@@ -937,15 +937,20 @@ function generarPreview(){
     plantilla.style.backgroundImage=`url('${urlPlantilla}')`;
     editorCanvas.appendChild(plantilla);
     
-    // Contenedor de clip: cubre exactamente el área verde (63%–87% alto, 5%–95% ancho)
-    // overflow:hidden garantiza que el texto nunca salga de estos límites
+    // Contenedor de clip: cubre exactamente el área verde según formato
+    // 9:16 → top=70.2%, bottom CSS=6.5% (pixel: 1348–1795 de 1920)
+    // 3:4  → top=68.2%, bottom CSS=8.5% (pixel: 967–1296 de 1417)
+    const isPortrait=tam==='916';
+    const zoneTopPct=isPortrait?70.2:68.2;
+    const zoneBotCSSPct=isPortrait?6.5:8.5;
+    const zoneTotalPct=23.3; // 93.5-70.2 ≈ 91.5-68.2 ≈ 23.3
     const textZone=document.createElement('div');
     textZone.id='textZone';
     textZone.style.position='absolute';
-    textZone.style.top='63%';
-    textZone.style.bottom='13%';
-    textZone.style.left='5%';
-    textZone.style.right='5%';
+    textZone.style.top=`${zoneTopPct}%`;
+    textZone.style.bottom=`${zoneBotCSSPct}%`;
+    textZone.style.left='1.8%';
+    textZone.style.right='1.8%';
     textZone.style.overflow='hidden';
     textZone.style.zIndex='15';
     textZone.style.pointerEvents='none';
@@ -953,8 +958,7 @@ function generarPreview(){
     const texto=document.createElement('div');
     texto.className='text-overlay';
     texto.id='textoOverlay';
-    // posY se mapea al interior de la zona: zona ocupa 63%–87% del canvas (24 puntos)
-    const posInZone=Math.max(0,(textoConfig.posY-63)/24*100);
+    const posInZone=Math.max(0,(textoConfig.posY-zoneTopPct)/zoneTotalPct*100);
     texto.style.top=`${posInZone}%`;
     texto.style.left='0';
     texto.style.right='0';
@@ -1012,7 +1016,9 @@ function updateEditor(){
 function updateTexto(){
     const t=document.getElementById('textoOverlay');
     if(t){
-        const posInZone=Math.max(0,(textoConfig.posY-63)/24*100);
+        const isPortrait=document.getElementById('plantillaTamano').value==='916';
+        const zoneTopPct=isPortrait?70.2:68.2;
+        const posInZone=Math.max(0,(textoConfig.posY-zoneTopPct)/23.3*100);
         t.style.top=`${posInZone}%`;
         t.style.fontSize=`${textoConfig.tam}px`;
         t.style.textAlign=textoConfig.align;
@@ -1057,7 +1063,7 @@ function adjustCirc2Y(d){const v=Math.max(0,Math.min(100,circ2Config.posY+d));do
 function updateTextoTam(v){textoConfig.tam=parseInt(v);document.getElementById('textoTamVal').textContent=v+'px';updateTexto();}
 function adjustTextoTam(d){const v=Math.max(30,Math.min(100,textoConfig.tam+d));document.getElementById('textoTam').value=v;updateTextoTam(v);}
 function updateTextoPosY(v){textoConfig.posY=parseInt(v);document.getElementById('textoPosYVal').textContent=v+'%';updateTexto();}
-function adjustTextoPosY(d){const v=Math.max(63,Math.min(85,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
+function adjustTextoPosY(d){const v=Math.max(71,Math.min(91,textoConfig.posY+d));document.getElementById('textoPosY').value=v;updateTextoPosY(v);}
 function updateTextoLineHeight(v){textoConfig.lineHeight=parseFloat(v);document.getElementById('textoLineHeightVal').textContent=v;updateTexto();}
 function adjustTextoLineHeight(d){const v=Math.max(0.8,Math.min(2.0,textoConfig.lineHeight+d));document.getElementById('textoLineHeight').value=v.toFixed(1);updateTextoLineHeight(v.toFixed(1));}
 function updateTextoSpacing(v){textoConfig.spacing=parseInt(v);document.getElementById('textoSpacingVal').textContent=v+'px';updateTexto();}
@@ -1532,11 +1538,14 @@ async function generarYEnviarLamina(){
             console.log(`topY: ${topY}, startY: ${startY} (baseline: topY + fontSize)`);
             console.log(`xPos: ${xPos} (align: ${textoConfig.align})`);
 
-            // CLIP REGION: limitar dibujo al área verde de la plantilla (63%–87% vertical)
-            const clipTop=canvas.height*0.63;
-            const clipBottom=canvas.height*0.87;
-            const clipLeft=canvas.width*0.05;
-            const clipRight=canvas.width*0.95;
+            // CLIP REGION: limitar dibujo al área verde de la plantilla (formato-específico)
+            // 9:16 → 70.2%–93.5% vertical, px: 1348–1795 de 1920
+            // 3:4  → 68.2%–91.5% vertical, px: 967–1296 de 1417
+            const isPortraitClip=tam==='916';
+            const clipTop=canvas.height*(isPortraitClip?0.702:0.682);
+            const clipBottom=canvas.height*(isPortraitClip?0.935:0.915);
+            const clipLeft=canvas.width*0.018;
+            const clipRight=canvas.width*(1-0.018);
             ctx.save();
             ctx.beginPath();
             ctx.rect(clipLeft,clipTop,clipRight-clipLeft,clipBottom-clipTop);
