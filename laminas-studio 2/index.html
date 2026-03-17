@@ -793,12 +793,21 @@ function cambiarComposicion(){
     document.getElementById('controlCirculo1').style.display='none';
     document.getElementById('controlCirculo2').style.display='none';
     
-    if(t==='ninguna')return;
-    
     const campos={'1imagen':['imagen1'],'1circulo':['circulo1'],'2circulos':['circulo1','circulo2']};
     const labels={'imagen1':'Imagen Adicional','circulo1':'Círculo 1','circulo2':'Círculo 2'};
-    const keys=campos[t]||[];
-    
+    const allComposicion=['imagen1','circulo1','circulo2'];
+    const activeKeys=campos[t]||[];
+
+    // Limpiar imágenes y elementos del preview que ya no corresponden al tipo activo
+    allComposicion.filter(k=>!activeKeys.includes(k)).forEach(k=>{
+        imagenesComposicion[k]=null;
+        const el=document.getElementById(k);
+        if(el)el.remove();
+    });
+
+    if(t==='ninguna')return;
+
+    const keys=activeKeys;
     keys.forEach(k=>{
         c.innerHTML+=`<div class="field" style="margin-top:10px;">
             <label class="field-label">${labels[k]}</label>
@@ -941,11 +950,11 @@ function generarPreview(){
     
     // Contenedor de clip: cubre exactamente el área verde según formato
     // 9:16 → top=70.2%, bottom CSS=6.5% (pixel: 1348–1795 de 1920)
-    // 3:4  → top=68.2%, bottom CSS=8.5% (pixel: 967–1296 de 1417)
+    // 3:4  → top=63%, bottom CSS=8.5% (pixel: 893–1296 de 1417)
     const isPortrait=tam==='916';
-    const zoneTopPct=isPortrait?70.2:68.2;
+    const zoneTopPct=isPortrait?70.2:63.0;
     const zoneBotCSSPct=isPortrait?6.5:8.5;
-    const zoneTotalPct=23.3; // 93.5-70.2 ≈ 91.5-68.2 ≈ 23.3
+    const zoneTotalPct=isPortrait?23.3:28.5; // 9:16: 93.5-70.2=23.3 | 3:4: 91.5-63=28.5
     const textZone=document.createElement('div');
     textZone.id='textZone';
     textZone.style.position='absolute';
@@ -1542,9 +1551,9 @@ async function generarYEnviarLamina(){
 
             // CLIP REGION: limitar dibujo al área verde de la plantilla (formato-específico)
             // 9:16 → 70.2%–93.5% vertical, px: 1348–1795 de 1920
-            // 3:4  → 68.2%–91.5% vertical, px: 967–1296 de 1417
+            // 3:4  → 63%–91.5% vertical, px: 893–1296 de 1417
             const isPortraitClip=tam==='916';
-            const clipTop=canvas.height*(isPortraitClip?0.702:0.682);
+            const clipTop=canvas.height*(isPortraitClip?0.702:0.630);
             const clipBottom=canvas.height*(isPortraitClip?0.935:0.915);
             const clipLeft=canvas.width*0.018;
             const clipRight=canvas.width*(1-0.018);
