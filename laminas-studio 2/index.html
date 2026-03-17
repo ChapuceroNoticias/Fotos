@@ -1496,6 +1496,7 @@ async function generarYEnviarLamina(){
             
             ctx.font=`900 ${fontSize}px PackyGreat, Impact, sans-serif`;
             ctx.textAlign=textoConfig.align;
+            ctx.textBaseline='top'; // top para que y=borde superior del texto, igual que CSS top:%
             ctx.shadowColor='rgba(0,0,0,0.8)';
             ctx.shadowBlur=8;
             ctx.shadowOffsetX=3;
@@ -1540,8 +1541,8 @@ async function generarYEnviarLamina(){
             
             const lineHeight=fontSize*textoConfig.lineHeight;
             const topY=canvas.height*(textoConfig.posY/100);
-            // Ajuste para que coincida con preview: usar fontSize completo
-            const startY=topY+fontSize;
+            // textBaseline='top': startY es el borde SUPERIOR del texto, igual que CSS top:%
+            const startY=topY;
             
             let xPos=margin;
             if(textoConfig.align==='center')xPos=canvas.width/2;
@@ -1571,7 +1572,7 @@ async function generarYEnviarLamina(){
                 // Dibujar carácter por carácter con espaciado
                 lines.forEach((line,i)=>{
                     const y=startY+(i*lineHeight);
-                    if(y-fontSize>clipBottom)return; // saltar líneas fuera del área
+                    if(y>clipBottom)return; // saltar líneas fuera del área
                     let currentX=xPos;
 
                     // Si align center/right, calcular ancho total primero
@@ -1599,7 +1600,7 @@ async function generarYEnviarLamina(){
                 // Sin letterSpacing, dibujar normal
                 lines.forEach((line,i)=>{
                     const y=startY+(i*lineHeight);
-                    if(y-fontSize>clipBottom)return; // saltar líneas fuera del área
+                    if(y>clipBottom)return; // saltar líneas fuera del área
                     ctx.fillText(line,xPos,y);
                 });
             }
