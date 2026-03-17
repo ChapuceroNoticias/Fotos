@@ -1501,7 +1501,9 @@ async function generarYEnviarLamina(){
             ctx.shadowOffsetX=3;
             ctx.shadowOffsetY=3;
             
-            const maxWidth=canvas.width-100;
+            // Margen lateral idéntico al preview (1.8% cada lado = 96.4% de ancho útil)
+            const margin=canvas.width*0.018;
+            const maxWidth=canvas.width*0.964;
             const lines=[];
 
             // Mide el ancho real incluyendo letterSpacing
@@ -1541,9 +1543,9 @@ async function generarYEnviarLamina(){
             // Ajuste para que coincida con preview: usar fontSize completo
             const startY=topY+fontSize;
             
-            let xPos=50;
+            let xPos=margin;
             if(textoConfig.align==='center')xPos=canvas.width/2;
-            else if(textoConfig.align==='right')xPos=canvas.width-50;
+            else if(textoConfig.align==='right')xPos=canvas.width-margin;
             
             console.log(`Líneas: ${lines.length}`);
             console.log(`lineHeight: ${lineHeight}px`);
