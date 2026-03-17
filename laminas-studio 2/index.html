@@ -950,11 +950,12 @@ function generarPreview(){
     
     // Contenedor de clip: cubre exactamente el área verde según formato
     // 9:16 → top=70.2%, bottom CSS=6.5% (pixel: 1348–1795 de 1920)
-    // 3:4  → top=63%, bottom CSS=8.5% (pixel: 893–1296 de 1417)
+    // 9:16 → top=64%, bottom CSS=6.5% (pixel: 1229–1795 de 1920)
+    // 3:4  → top=67%, bottom CSS=8.5% (pixel: 950–1296 de 1417)
     const isPortrait=tam==='916';
-    const zoneTopPct=isPortrait?70.2:63.0;
+    const zoneTopPct=isPortrait?64.0:67.0;
     const zoneBotCSSPct=isPortrait?6.5:8.5;
-    const zoneTotalPct=isPortrait?23.3:28.5; // 9:16: 93.5-70.2=23.3 | 3:4: 91.5-63=28.5
+    const zoneTotalPct=isPortrait?29.5:24.5; // 9:16: 93.5-64=29.5 | 3:4: 91.5-67=24.5
     const textZone=document.createElement('div');
     textZone.id='textZone';
     textZone.style.position='absolute';
@@ -1551,9 +1552,10 @@ async function generarYEnviarLamina(){
 
             // CLIP REGION: limitar dibujo al área verde de la plantilla (formato-específico)
             // 9:16 → 70.2%–93.5% vertical, px: 1348–1795 de 1920
-            // 3:4  → 63%–91.5% vertical, px: 893–1296 de 1417
+            // 9:16 → 64%–93.5% vertical, px: 1229–1795 de 1920
+            // 3:4  → 67%–91.5% vertical, px: 950–1296 de 1417
             const isPortraitClip=tam==='916';
-            const clipTop=canvas.height*(isPortraitClip?0.702:0.630);
+            const clipTop=canvas.height*(isPortraitClip?0.640:0.670);
             const clipBottom=canvas.height*(isPortraitClip?0.935:0.915);
             const clipLeft=canvas.width*0.018;
             const clipRight=canvas.width*(1-0.018);
