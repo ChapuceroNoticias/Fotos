@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Láminas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:      #0d0e11;
+            --s1:      #141519;
+            --s2:      #1c1d23;
+            --s3:      #25262e;
+            --border:  rgba(255,255,255,0.07);
+            --accent:  #f59e0b;
+            --accent2: #ef4444;
+            --blue:    #3b82f6;
+            --green:   #10b981;
+            --text:    #f0f0f5;
+            --muted:   #6b7280;
+            --mono:    'IBM Plex Mono', monospace;
+            --sans:    'Outfit', sans-serif;
+            --display: 'Syne', sans-serif;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(245,158,11,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(245,158,11,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* Header */
+        header {
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: rgba(13,14,17,0.95);
+            backdrop-filter: blur(16px);
+            z-index: 100;
+        }
+
+        .brand { display: flex; align-items: center; gap: 14px; }
+
+        .brand-mark {
+            width: 38px; height: 38px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--display);
+            font-size: 20px; font-weight: 800; color: #000;
+        }
+
+        .brand-name { font-family: var(--display); font-size: 18px; font-weight: 700; }
+
+        .header-actions { display: flex; gap: 12px; }
+
+        .btn {
+            padding: 8px 16px;
+            border: none; border-radius: 8px;
+            font-family: var(--sans); font-size: 14px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary { background: var(--s2); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover:not(:disabled) { background: #fbbf24; }
+
+        .btn-success { background: var(--green); color: #000; }
+        .btn-success:hover:not(:disabled) { background: #34d399; }
+
+        /* Spinner */
+        .spin {
+            display: inline-block;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Main */
+        .main { padding: 32px; max-width: 1800px; margin: 0 auto; }
+
+        .page-header {
+            margin-bottom: 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .page-title { font-family: var(--display); font-size: 32px; font-weight: 700; }
+
+        .stats { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+        .stats strong { color: var(--accent); }
+
+        /* Empty / Error state */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 0;
+            color: var(--muted);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state p { font-size: 16px; }
+
+        /* Gallery */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .lamina-card {
+            background: var(--s1);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .lamina-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(245,158,11,0.2);
+        }
+
+        .lamina-image {
+            width: 100%;
+            background: var(--s2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .lamina-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .lamina-image .img-placeholder {
+            color: var(--muted);
+            font-size: 12px;
+            font-family: var(--mono);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lamina-info { padding: 16px; }
+
+        .lamina-title {
+            font-family: var(--display);
+            font-size: 15px; font-weight: 600;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .lamina-meta { font-size: 12px; font-family: var(--mono); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+
+        .tipo-badge {
+            background: var(--s3);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 1000;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: var(--s1);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            max-width: 1100px; width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 16px;
+        }
+
+        .modal-title {
+            font-family: var(--display);
+            font-size: 22px; font-weight: 700;
+        }
+
+        .modal-close {
+            width: 36px; height: 36px; flex-shrink: 0;
+            border-radius: 8px;
+            background: var(--s2); border: 1px solid var(--border);
+            color: var(--text); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; line-height: 1;
+        }
+
+        .modal-close:hover { border-color: var(--accent); color: var(--accent); }
+
+        .modal-body { padding: 24px; }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 32px;
+        }
+
+        .modal-image {
+            width: 100%; border-radius: 12px; overflow: hidden;
+            background: var(--s2); border: 1px solid var(--border);
+        }
+
+        .modal-image img { width: 100%; display: block; }
+
+        .modal-content { display: flex; flex-direction: column; gap: 16px; }
+
+        .content-section {
+            background: var(--s2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px;
+        }
+
+        .content-label {
+            font-size: 11px; font-family: var(--mono);
+            color: var(--muted); text-transform: uppercase;
+            letter-spacing: 0.1em; margin-bottom: 8px;
+        }
+
+        .content-text { color: var(--text); line-height: 1.6; font-size: 14px; white-space: pre-wrap; }
+
+        .modal-actions { display: flex; gap: 12px; margin-top: 8px; }
+
+        .modal-actions .btn {
+            flex: 1; justify-content: center;
+            padding: 14px 24px; font-size: 15px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 32px; right: 32px;
+            background: var(--s2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 14px 20px;
+            font-size: 14px; z-index: 9999;
+            display: flex; align-items: center; gap: 10px;
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.3s;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--accent2); }
+
+        /* Scrollbar */
+        .modal::-webkit-scrollbar { width: 8px; }
+        .modal::-webkit-scrollbar-track { background: var(--s2); }
+        .modal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        @media (max-width: 968px) {
+            .modal-grid { grid-template-columns: 1fr; }
+            header { padding: 0 16px; }
+            .main { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =====================================================
+         CONFIGURACIÓN — editar estas dos URLs
+    ====================================================== -->
+    <script>
+        const WEBHOOK_ACTUALIZAR   = 'https://n8n-ukzb.onrender.com/webhook/galeria-datos';
+    </script>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-mark">CH</div>
+            <div class="brand-name">Galería de Láminas</div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="btnActualizar" onclick="actualizarGaleria()">
+                🔄 Actualizar
+            </button>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <div class="main">
+        <div class="page-header">
+            <h1 class="page-title">Galería de Láminas</h1>
+            <div class="stats">
+                Total: <strong id="totalCount">0</strong> láminas
+            </div>
+        </div>
+
+        <div class="gallery" id="gallery">
+            <div class="empty-state">
+                <div class="icon">🖼️</div>
+                <p>Presiona <strong>Actualizar</strong> para cargar las láminas</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalLamina" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitulo"></h2>
+                <button class="modal-close" onclick="cerrarModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-grid">
+                    <div class="modal-image">
+                        <img id="modalImg" src="" alt="Lámina">
+                    </div>
+                    <div class="modal-content">
+                        <div class="content-section">
+                            <div class="content-label">Post X</div>
+                            <div class="content-text" id="modalPostX"></div>
+                        </div>
+                        <div class="content-section">
+                            <div class="content-label">Hashtags</div>
+                            <div class="content-text" id="modalHashtags"></div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-success" id="btnPublicar" onclick="publicarLamina()">
+                                <span>📲</span>
+                                <span>Publicar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ─── Estado global del modal ───────────────────────────────────────────
+        let laminaActiva = null;
+
+        // ─── Convierte URL de Google Drive a URL directa de imagen ────────────
+        function driveDirectUrl(url) {
+            if (!url || url.trim() === '') return null;
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/) ||
+                          url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+            if (match) {
+                return `drive-proxy.php?id=${match[1]}`;
+            }
+            return url;
+        }
+
+        // ─── Actualizar galería desde n8n ──────────────────────────────────────
+        async function actualizarGaleria() {
+            const btn = document.getElementById('btnActualizar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spin">⏳</span> Cargando...';
+
+            try {
+                const resp = await fetch(WEBHOOK_ACTUALIZAR, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+                const data = await resp.json();
+
+                // n8n puede devolver array directo o { laminas: [...] }
+                const laminas = Array.isArray(data) ? data : (data.laminas || []);
+
+                renderGaleria(laminas);
+                mostrarToast(`✅ ${laminas.length} registros cargados`, 'success');
+
+            } catch (err) {
+                console.error(err);
+                mostrarToast('❌ Error al conectar con n8n: ' + err.message, 'error');
+                document.getElementById('gallery').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <p>No se pudo cargar. Verifica la URL del webhook y que n8n esté activo.</p>
+                    </div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Actualizar';
+            }
+        }
+
+        // ─── Renderizar tarjetas ───────────────────────────────────────────────
+        function renderGaleria(laminas) {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            let totalCards = 0;
+
+            laminas.forEach(lamina => {
+                // Soporta nombres de columna con ":" → JSON los envía como string key
+                const img916 = driveDirectUrl(lamina['9:16'] || lamina['imagen_916'] || lamina['Imagen_916'] || '');
+                const img34  = driveDirectUrl(lamina['3:4']  || lamina['imagen_34']  || lamina['Imagen_34']  || '');
+
+                if (img916) {
+                    gallery.appendChild(crearCard(lamina, img916, '9:16'));
+                    totalCards++;
+                }
+                if (img34) {
+                    gallery.appendChild(crearCard(lamina, img34, '3:4'));
+                    totalCards++;
+                }
+
+                // Si no tiene ninguna imagen válida, igual muestra la card sin imagen
+                if (!img916 && !img34) {
+                    gallery.appendChild(crearCard(lamina, null, null));
+                    totalCards++;
+                }
+            });
+
+            document.getElementById('totalCount').textContent = totalCards;
+
+            if (totalCards === 0) {
+                gallery.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🗂️</div>
+                        <p>No se encontraron láminas en el Sheet.</p>
+                    </div>`;
+            }
+        }
+
+        function crearCard(lamina, imgUrl, tipo) {
+            const titulo  = lamina['Titulo'] || lamina['titulo'] || '(Sin título)';
+            const fecha   = lamina['Fecha']  || lamina['fecha']  || '';
+
+            const card = document.createElement('div');
+            card.className = 'lamina-card';
+
+            // Relación de aspecto según tipo
+            const aspectRatio = tipo === '3:4' ? '3/4' : '9/16';
+
+            card.innerHTML = `
+                <div class="lamina-image" style="aspect-ratio: ${aspectRatio}">
+                    ${imgUrl
+                        ? `<img src="${imgUrl}" alt="Lámina" loading="lazy"
+                               onerror="this.parentElement.innerHTML='<div class=\\'img-placeholder\\'><span>🖼️</span><span>Sin imagen</span></div>'">`
+                        : `<div class="img-placeholder"><span>🖼️</span><span>Sin imagen</span></div>`
+                    }
+                </div>
+                <div class="lamina-info">
+                    <div class="lamina-title">${escHtml(titulo)}</div>
+                    <div class="lamina-meta">
+                        ${tipo ? `<span class="tipo-badge">${tipo}</span>` : ''}
+                        ${fecha ? `<span>${escHtml(fecha)}</span>` : ''}
+                    </div>
+                </div>`;
+
+            card.onclick = () => abrirModal(lamina, imgUrl, tipo);
+            return card;
+        }
+
+        // ─── Modal ─────────────────────────────────────────────────────────────
+        function abrirModal(lamina, imgUrl, tipo) {
+            laminaActiva = { lamina, imgUrl, tipo };
+
+            const titulo   = lamina['Titulo']   || lamina['titulo']   || '(Sin título)';
+            const postX    = lamina['Post X']    || lamina['post_x']   || lamina['PostX'] || '';
+            const hashtags = lamina['Hashtags']  || lamina['hashtags'] || '';
+
+            document.getElementById('modalTitulo').textContent  = titulo;
+            document.getElementById('modalPostX').textContent   = postX;
+            document.getElementById('modalHashtags').textContent = hashtags;
+
+            const modalImg = document.getElementById('modalImg');
+            if (imgUrl) {
+                modalImg.src = imgUrl;
+                modalImg.style.display = 'block';
+            } else {
+                modalImg.style.display = 'none';
+            }
+
+            document.getElementById('modalLamina').classList.add('show');
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalLamina').classList.remove('show');
+            laminaActiva = null;
+        }
+
+        document.getElementById('modalLamina').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModal();
+        });
+
+        // ─── Publicar ──────────────────────────────────────────────────────────
+        async function publicarLamina() {
+            if (!laminaActiva) return;
+
+            const btn = document.getElementById('btnPublicar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spin">⏳</span> Publicando...';
+
+            const { lamina, tipo } = laminaActiva;
+            const postX   = lamina['Post X'] || '';
+            const webhook = tipo === '9:16'
+                ? 'https://n8n-ukzb.onrender.com/webhook/PublicarStori'
+                : 'https://n8n-ukzb.onrender.com/webhook/PublicarFXINS';
+
+            try {
+                await fetch(webhook, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_x: postX })
+                });
+
+                mostrarToast('✅ Enviado correctamente', 'success');
+                cerrarModal();
+
+            } catch (err) {
+                console.error(err);
+                mostrarToast('❌ Error al publicar: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>📲</span> Publicar';
+            }
+        }
+
+        // ─── Utilidades ────────────────────────────────────────────────────────
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;');
+        }
+
+        function mostrarToast(msg, tipo = '') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${tipo} show`;
+            setTimeout(() => { t.className = 'toast'; }, 4000);
+        }
+    </script>
+</body>
+</html>
